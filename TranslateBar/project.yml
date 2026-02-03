@@ -1,0 +1,36 @@
+name: TranslateBar
+options:
+  bundleIdPrefix: com.translatebar
+  deploymentTarget:
+    macOS: "13.0"
+  xcodeVersion: "15.0"
+  generateEmptyDirectories: true
+
+settings:
+  base:
+    MARKETING_VERSION: "1.0"
+    CURRENT_PROJECT_VERSION: "1"
+    SWIFT_VERSION: "5.9"
+    CODE_SIGN_STYLE: Manual
+    CODE_SIGN_IDENTITY: "-"
+    ENABLE_HARDENED_RUNTIME: NO
+
+targets:
+  TranslateBar:
+    type: application
+    platform: macOS
+    sources:
+      - path: TranslateBar
+        excludes:
+          - "**/*.entitlements"
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.translatebar.app
+        INFOPLIST_FILE: TranslateBar/Info.plist
+        CODE_SIGN_ENTITLEMENTS: TranslateBar/TranslateBar.entitlements
+        PRODUCT_NAME: TranslateBar
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        COMBINE_HIDPI_IMAGES: YES
+        LD_RUNPATH_SEARCH_PATHS:
+          - $(inherited)
+          - "@executable_path/../Frameworks"

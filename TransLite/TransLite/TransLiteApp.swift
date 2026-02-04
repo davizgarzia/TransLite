@@ -1,7 +1,7 @@
 import SwiftUI
 
 @main
-struct TranslateBarApp: App {
+struct TransLiteApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
 
     var body: some Scene {
@@ -29,7 +29,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
         // Initialize the hotkey manager
         hotkeyManager = HotkeyManager { [weak self] in
-            self?.viewModel?.translateClipboard()
+            self?.viewModel?.translateSelectedText()
         }
 
         // Register the global hotkey (Cmd+Shift+T)

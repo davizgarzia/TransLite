@@ -249,7 +249,7 @@ struct PopoverView: View {
                     }
                     .font(.system(size: 9, weight: .medium))
                     .buttonStyle(.bordered)
-                    .controlSize(.mini)
+                    .controlSize(.small)
                 }
                 .padding(.horizontal, cardPadding)
                 .padding(.vertical, 8)

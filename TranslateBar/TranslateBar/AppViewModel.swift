@@ -17,21 +17,6 @@ enum TargetLanguage: String, CaseIterable {
     case russian = "Russian"
 
     var displayName: String { rawValue }
-    var flag: String {
-        switch self {
-        case .english: return "🇬🇧"
-        case .spanish: return "🇪🇸"
-        case .french: return "🇫🇷"
-        case .german: return "🇩🇪"
-        case .italian: return "🇮🇹"
-        case .portuguese: return "🇵🇹"
-        case .chinese: return "🇨🇳"
-        case .japanese: return "🇯🇵"
-        case .korean: return "🇰🇷"
-        case .arabic: return "🇸🇦"
-        case .russian: return "🇷🇺"
-        }
-    }
 }
 
 enum TranslationTone: String, CaseIterable {
@@ -51,10 +36,10 @@ enum TranslationTone: String, CaseIterable {
 
     var icon: String {
         switch self {
-        case .original: return "🎯"
-        case .formal: return "👔"
-        case .casual: return "💬"
-        case .concise: return "✂️"
+        case .original: return "text.alignleft"
+        case .formal: return "briefcase.fill"
+        case .casual: return "bubble.left.fill"
+        case .concise: return "scissors"
         }
     }
 

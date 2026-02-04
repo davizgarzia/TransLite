@@ -1,6 +1,6 @@
-# TransLite
+# TranslateBar
 
-A lightweight macOS menubar app that translates text to natural professional English using the OpenAI API with beautiful visual effects.
+A lightweight macOS menubar app that translates clipboard text to natural professional English using the OpenAI API.
 
 ## Features
 
@@ -13,24 +13,21 @@ A lightweight macOS menubar app that translates text to natural professional Eng
 ## Project Structure
 
 ```
-TransLite/
-├── TransLite/
-│   ├── TransLiteApp.swift              # App entry point & AppDelegate
-│   ├── StatusBarController.swift       # NSStatusBar & popover management
-│   ├── PopoverView.swift               # SwiftUI interface
-│   ├── AppViewModel.swift              # Main state management
-│   ├── HotkeyManager.swift             # Global keyboard shortcut (Carbon)
-│   ├── ClipboardManager.swift          # NSPasteboard read/write
-│   ├── OpenAIClient.swift              # OpenAI API integration
-│   ├── KeychainHelper.swift            # Secure API key storage
-│   ├── AccessibilityHelper.swift       # CGEvent & text selection detection
-│   ├── TranslationHUDView.swift        # Floating HUD visual interface
-│   ├── TranslationHUDController.swift  # HUD window management
-│   ├── Info.plist                      # App configuration
-│   └── TransLite.entitlements          # App entitlements
-├── TransLite.xcodeproj/                # Xcode project (generated)
-├── project.yml                         # XcodeGen specification
-├── CHANGELOG.md                        # Version history
+TranslateBar/
+├── TranslateBar/
+│   ├── TranslateBarApp.swift       # App entry point & AppDelegate
+│   ├── StatusBarController.swift   # NSStatusBar & popover management
+│   ├── PopoverView.swift           # SwiftUI interface
+│   ├── AppViewModel.swift          # Main state management
+│   ├── HotkeyManager.swift         # Global keyboard shortcut (Carbon)
+│   ├── ClipboardManager.swift      # NSPasteboard read/write
+│   ├── OpenAIClient.swift          # OpenAI API integration
+│   ├── KeychainHelper.swift        # Secure API key storage
+│   ├── AccessibilityHelper.swift   # CGEvent & permissions
+│   ├── Info.plist                  # App configuration
+│   └── TranslateBar.entitlements   # App entitlements
+├── TranslateBar.xcodeproj/         # Xcode project (generated)
+├── project.yml                     # XcodeGen specification
 └── README.md
 ```
 
@@ -44,11 +41,11 @@ TransLite/
 
 ### Option 1: Using the Pre-Generated Xcode Project
 
-The project already includes a generated `TransLite.xcodeproj`:
+The project already includes a generated `TranslateBar.xcodeproj`:
 
 ```bash
-cd TransLite
-open TransLite.xcodeproj
+cd TranslateBar
+open TranslateBar.xcodeproj
 ```
 
 Then in Xcode:
@@ -64,25 +61,25 @@ If you need to regenerate the Xcode project:
 brew install xcodegen
 
 # Generate the project
-cd TransLite
+cd TranslateBar
 xcodegen generate
 
 # Open in Xcode
-open TransLite.xcodeproj
+open TranslateBar.xcodeproj
 ```
 
 ### Building from Command Line
 
 ```bash
-cd TransLite
-xcodebuild -project TransLite.xcodeproj \
-  -scheme TransLite \
+cd TranslateBar
+xcodebuild -project TranslateBar.xcodeproj \
+  -scheme TranslateBar \
   -configuration Debug \
   build
 ```
 
 The built app will be in:
-`~/Library/Developer/Xcode/DerivedData/TransLite-*/Build/Products/Debug/TransLite.app`
+`~/Library/Developer/Xcode/DerivedData/TranslateBar-*/Build/Products/Debug/TranslateBar.app`
 
 ## How to Use
 
@@ -123,7 +120,7 @@ If you enable auto-paste, the app needs Accessibility permission to simulate `Cm
 
 1. Click **Request Permission** in the popover, or
 2. Go to **System Settings → Privacy & Security → Accessibility**
-3. Find TransLite and enable it
+3. Find TranslateBar and enable it
 4. You may need to restart the app
 
 ## How It Works
@@ -221,7 +218,7 @@ The `Info.plist` includes `LSUIElement = true` which makes the app a "background
 
 | File | Lines | Purpose |
 |------|-------|---------|
-| `TransLiteApp.swift` | ~40 | App entry point, AppDelegate |
+| `TranslateBarApp.swift` | ~40 | App entry point, AppDelegate |
 | `StatusBarController.swift` | ~50 | NSStatusBar, popover management |
 | `PopoverView.swift` | ~180 | Main SwiftUI interface |
 | `AppViewModel.swift` | ~110 | State management, translation logic |

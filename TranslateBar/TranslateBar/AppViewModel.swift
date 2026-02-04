@@ -85,7 +85,7 @@ final class AppViewModel: ObservableObject {
     private let clipboard = ClipboardManager.shared
     private let openAI = OpenAIClient.shared
     private let accessibility = AccessibilityHelper.shared
-    private let hudController = TranslationHUDController()
+    private let hud = TranslationHUD.shared
     private var permissionPollingTimer: Timer?
 
     // MARK: - Initialization
@@ -167,6 +167,7 @@ final class AppViewModel: ObservableObject {
 
         isTranslating = true
         statusMessage = "Translating..."
+        hud.show(message: "Translating...")
 
         Task {
             do {
@@ -187,6 +188,7 @@ final class AppViewModel: ObservableObject {
                         hasAccessibilityPermission = accessibility.hasAccessibilityPermission
 
                         if hasAccessibilityPermission {
+                            hud.update(message: "Pasting...")
                             // Small delay to ensure clipboard is set
                             try? await Task.sleep(nanoseconds: 100_000_000) // 100ms
                             if accessibility.simulatePaste() {
@@ -206,78 +208,7 @@ final class AppViewModel: ObservableObject {
                 statusMessage = error.localizedDescription
             }
 
-            isTranslating = false
-        }
-    }
-
-    /// Translates selected text with visual effects (new hotkey behavior)
-    func translateSelectedText() {
-        guard !isTranslating else {
-            return
-        }
-
-        guard hasAPIKey, let apiKey = keychain.getAPIKey() else {
-            statusMessage = "No API key configured"
-            return
-        }
-
-        // Refresh permission status
-        hasAccessibilityPermission = accessibility.hasAccessibilityPermission
-
-        guard hasAccessibilityPermission else {
-            statusMessage = "Accessibility permission required"
-            return
-        }
-
-        // Get selected text and position
-        guard let selectedInfo = accessibility.getSelectedText() else {
-            statusMessage = "No text selected"
-            return
-        }
-
-        isTranslating = true
-        hudController.show(at: selectedInfo.position)
-        hudController.update(state: .translating)
-
-        Task {
-            do {
-                // Translate the text
-                let translated = try await openAI.translate(
-                    text: selectedInfo.text,
-                    apiKey: apiKey,
-                    targetLanguage: targetLanguage.rawValue,
-                    tone: translationTone.promptInstruction
-                )
-
-                hudController.update(state: .typing(progress: 0))
-
-                // Small delay before starting the effect
-                try? await Task.sleep(nanoseconds: 100_000_000) // 100ms
-
-                // Delete original text with visual effect
-                let originalLength = selectedInfo.text.count
-                await Task.detached {
-                    AccessibilityHelper.shared.simulateDelete(count: originalLength)
-                }.value
-
-                // Type translated text
-                await Task.detached {
-                    AccessibilityHelper.shared.simulateTyping(text: translated, delayPerChar: 15000, progressCallback: nil)
-                }.value
-
-                // Show success state briefly
-                hudController.update(state: .success)
-                statusMessage = "Translated successfully"
-
-                // Hide HUD after a short delay
-                hudController.hide(after: 1.0)
-
-            } catch {
-                hudController.update(state: .error("Error"))
-                hudController.hide(after: 2.0)
-                statusMessage = error.localizedDescription
-            }
-
+            hud.hide()
             isTranslating = false
         }
     }

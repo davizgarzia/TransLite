@@ -1,6 +1,6 @@
 name: TranslateBar
 options:
-  bundleIdPrefix: com.translatebar
+  bundleIdPrefix: com.translite
   deploymentTarget:
     macOS: "13.0"
   xcodeVersion: "15.0"
@@ -25,7 +25,7 @@ targets:
           - "**/*.entitlements"
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.translatebar.app
+        PRODUCT_BUNDLE_IDENTIFIER: com.translite.app
         INFOPLIST_FILE: TranslateBar/Info.plist
         CODE_SIGN_ENTITLEMENTS: TranslateBar/TranslateBar.entitlements
         PRODUCT_NAME: TransLite

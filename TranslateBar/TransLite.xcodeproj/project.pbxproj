@@ -25,7 +25,7 @@
 		0854A02989745CFFB5694ACC /* PopoverView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PopoverView.swift; sourceTree = "<group>"; };
 		1CAD151AD6F3451EE0453AAE /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		50614BB81672B6980950B81F /* ClipboardManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardManager.swift; sourceTree = "<group>"; };
-		5D684AD68F27EF6F459B7D84 /* TranslateBar.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; name = TranslateBar.app; path = TransLite.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		5D684AD68F27EF6F459B7D84 /* TransLite.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = TransLite.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		6BC48D115DB88758B693DE0B /* HotkeyManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HotkeyManager.swift; sourceTree = "<group>"; };
 		70C1206B53B974B615E890CB /* AppViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppViewModel.swift; sourceTree = "<group>"; };
 		87A4D3BEF633F1EA196CFC42 /* OpenAIClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OpenAIClient.swift; sourceTree = "<group>"; };
@@ -46,7 +46,7 @@
 		5206C754ED542AADEDCE3702 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				5D684AD68F27EF6F459B7D84 /* TranslateBar.app */,
+				5D684AD68F27EF6F459B7D84 /* TransLite.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -72,9 +72,9 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		B412B7395C7021E2E35BFAFD /* TranslateBar */ = {
+		B412B7395C7021E2E35BFAFD /* TransLite */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 568266D1EC753B9793FF1275 /* Build configuration list for PBXNativeTarget "TranslateBar" */;
+			buildConfigurationList = 568266D1EC753B9793FF1275 /* Build configuration list for PBXNativeTarget "TransLite" */;
 			buildPhases = (
 				04CB13F8BE74779DE0E6A503 /* Sources */,
 			);
@@ -82,11 +82,11 @@
 			);
 			dependencies = (
 			);
-			name = TranslateBar;
+			name = TransLite;
 			packageProductDependencies = (
 			);
 			productName = TranslateBar;
-			productReference = 5D684AD68F27EF6F459B7D84 /* TranslateBar.app */;
+			productReference = 5D684AD68F27EF6F459B7D84 /* TransLite.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
@@ -116,7 +116,7 @@
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				B412B7395C7021E2E35BFAFD /* TranslateBar */,
+				B412B7395C7021E2E35BFAFD /* TransLite */,
 			);
 		};
 /* End PBXProject section */
@@ -282,7 +282,7 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.translatebar.app;
+				PRODUCT_BUNDLE_IDENTIFIER = com.translite.app;
 				PRODUCT_NAME = TransLite;
 				SDKROOT = macosx;
 			};
@@ -299,7 +299,7 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.translatebar.app;
+				PRODUCT_BUNDLE_IDENTIFIER = com.translite.app;
 				PRODUCT_NAME = TransLite;
 				SDKROOT = macosx;
 			};
@@ -308,7 +308,7 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		568266D1EC753B9793FF1275 /* Build configuration list for PBXNativeTarget "TranslateBar" */ = {
+		568266D1EC753B9793FF1275 /* Build configuration list for PBXNativeTarget "TransLite" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				CA93DBA97C626FA51CC7A8D5 /* Debug */,

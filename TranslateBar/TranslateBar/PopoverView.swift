@@ -4,8 +4,8 @@ import SwiftUI
 struct PopoverView: View {
     @ObservedObject var viewModel: AppViewModel
 
-    private let cardPadding: CGFloat = 10
-    private let cardCornerRadius: CGFloat = 8
+    private let cardPadding: CGFloat = 8
+    private let cardCornerRadius: CGFloat = 12
     private let contentSpacing: CGFloat = 8
 
     var body: some View {
@@ -51,7 +51,7 @@ struct PopoverView: View {
                 .font(.system(size: 16, weight: .medium))
                 .foregroundColor(.accentColor)
 
-            Text("TranslateBar")
+            Text("TransLite")
                 .font(.system(size: 13, weight: .semibold))
 
             Spacer()
@@ -112,7 +112,7 @@ struct PopoverView: View {
             }
             .padding(cardPadding)
         }
-        .background(Color(NSColor.controlBackgroundColor))
+        .background(Color(NSColor.controlBackgroundColor).opacity(0.7))
         .cornerRadius(cardCornerRadius)
     }
 
@@ -213,7 +213,7 @@ struct PopoverView: View {
                 .padding(cardPadding)
             }
         }
-        .background(Color(NSColor.controlBackgroundColor))
+        .background(Color(NSColor.controlBackgroundColor).opacity(0.7))
         .cornerRadius(cardCornerRadius)
     }
 
@@ -255,7 +255,7 @@ struct PopoverView: View {
                 .padding(.vertical, 8)
             }
         }
-        .background(Color(NSColor.controlBackgroundColor))
+        .background(Color(NSColor.controlBackgroundColor).opacity(0.7))
         .cornerRadius(cardCornerRadius)
     }
 

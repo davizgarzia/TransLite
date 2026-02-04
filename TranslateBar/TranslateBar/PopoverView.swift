@@ -3,6 +3,7 @@ import SwiftUI
 /// Main SwiftUI view for the menubar popover
 struct PopoverView: View {
     @ObservedObject var viewModel: AppViewModel
+    @State private var showingAPIKeyHelp = false
 
     private let cardPadding: CGFloat = 8
     private let cardCornerRadius: CGFloat = 12
@@ -84,7 +85,7 @@ struct PopoverView: View {
         VStack(spacing: 0) {
             // Language row
             HStack {
-                Label("Language", systemImage: "globe")
+                Label("Language", systemImage: "character.bubble")
                     .font(.system(size: 11))
                     .foregroundColor(.secondary)
                 Spacer()

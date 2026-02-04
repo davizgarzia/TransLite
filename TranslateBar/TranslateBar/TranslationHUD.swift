@@ -87,7 +87,8 @@ struct HUDContentView: View {
         HStack(spacing: 12) {
             ProgressView()
                 .scaleEffect(0.8)
-                .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                .colorInvert()
+                .brightness(1)
 
             Text(message)
                 .font(.system(size: 14, weight: .medium))

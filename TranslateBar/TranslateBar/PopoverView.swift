@@ -161,29 +161,22 @@ struct PopoverView: View {
                 Label("API Key", systemImage: "key.fill")
                     .font(.system(size: 11))
                     .foregroundColor(.secondary)
+
+                if viewModel.hasAPIKey {
+                    Image(systemName: "checkmark.circle.fill")
+                        .foregroundColor(.green)
+                        .font(.system(size: 10))
+                }
+
                 Spacer()
 
                 if viewModel.hasAPIKey {
-                    HStack(spacing: 4) {
-                        Image(systemName: "checkmark.circle.fill")
-                            .foregroundColor(.green)
-                            .font(.system(size: 10))
-                        Text("Configured")
-                            .font(.system(size: 10))
-                            .foregroundColor(.green)
-                        Button {
-                            viewModel.deleteAPIKey()
-                        } label: {
-                            Image(systemName: "xmark.circle.fill")
-                                .foregroundColor(.secondary)
-                                .font(.system(size: 12))
-                        }
-                        .buttonStyle(.plain)
+                    Button("Remove") {
+                        viewModel.deleteAPIKey()
                     }
-                } else {
-                    Image(systemName: "exclamationmark.circle.fill")
-                        .foregroundColor(.orange)
-                        .font(.system(size: 10))
+                    .font(.system(size: 9, weight: .medium))
+                    .buttonStyle(.bordered)
+                    .controlSize(.small)
                 }
             }
             .padding(.horizontal, cardPadding)
@@ -212,10 +205,74 @@ struct PopoverView: View {
                     .disabled(viewModel.apiKeyInput.isEmpty)
                 }
                 .padding(cardPadding)
+
+                Divider().padding(.leading, cardPadding)
+
+                // Footer help section
+                HStack(spacing: 4) {
+                    Image(systemName: "exclamationmark.circle.fill")
+                        .foregroundColor(.orange)
+                        .font(.system(size: 10))
+                    Text("OpenAI API Key required")
+                        .font(.system(size: 10))
+                        .foregroundColor(.secondary)
+                    Spacer()
+                    Button(showingAPIKeyHelp ? "Hide" : "Help") {
+                        withAnimation(.easeInOut(duration: 0.2)) {
+                            showingAPIKeyHelp.toggle()
+                        }
+                    }
+                    .font(.system(size: 9, weight: .medium))
+                    .buttonStyle(.bordered)
+                    .controlSize(.small)
+                }
+                .padding(.horizontal, cardPadding)
+                .padding(.vertical, 8)
+
+                // Expandable help steps
+                if showingAPIKeyHelp {
+                    Divider().padding(.leading, cardPadding)
+
+                    VStack(alignment: .leading, spacing: 6) {
+                        apiKeyStep(number: 1, text: "Sign in at platform.openai.com")
+                        apiKeyStep(number: 2, text: "Go to API Keys section")
+                        apiKeyStep(number: 3, text: "Create new secret key")
+                        apiKeyStep(number: 4, text: "Copy and paste above")
+
+                        Button {
+                            if let url = URL(string: "https://platform.openai.com/api-keys") {
+                                NSWorkspace.shared.open(url)
+                            }
+                        } label: {
+                            HStack(spacing: 4) {
+                                Image(systemName: "arrow.up.right.square")
+                                Text("Open OpenAI")
+                            }
+                            .font(.system(size: 9, weight: .medium))
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 22)
+                        }
+                        .buttonStyle(.bordered)
+                    }
+                    .padding(cardPadding)
+                }
             }
         }
         .background(Color(NSColor.controlBackgroundColor).opacity(0.7))
         .cornerRadius(cardCornerRadius)
+    }
+
+    private func apiKeyStep(number: Int, text: String) -> some View {
+        HStack(spacing: 6) {
+            Text("\(number)")
+                .font(.system(size: 8, weight: .bold))
+                .foregroundColor(.white)
+                .frame(width: 14, height: 14)
+                .background(Circle().fill(Color.accentColor.opacity(0.8)))
+            Text(text)
+                .font(.system(size: 10))
+                .foregroundColor(.secondary)
+        }
     }
 
     // MARK: - Auto-paste Card

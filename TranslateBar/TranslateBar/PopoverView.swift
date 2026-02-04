@@ -9,15 +9,26 @@ struct PopoverView: View {
     private let cardCornerRadius: CGFloat = 12
     private let contentSpacing: CGFloat = 8
 
+    private var trialExpired: Bool {
+        if case .expired = viewModel.trialStatus { return true }
+        return false
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             header
+
+            if case .expired = viewModel.trialStatus {
+                licenseCard
+            }
 
             VStack(spacing: contentSpacing) {
                 settingsCard
                 apiKeyCard
                 autoPasteCard
             }
+            .opacity(trialExpired ? 0.5 : 1.0)
+            .disabled(trialExpired)
 
             if !viewModel.statusMessage.isEmpty {
                 statusSection
@@ -30,6 +41,7 @@ struct PopoverView: View {
         .fixedSize(horizontal: false, vertical: true)
         .onAppear {
             viewModel.refreshAccessibilityStatus()
+            viewModel.refreshTrialStatus()
             if viewModel.autoPasteEnabled && !viewModel.hasAccessibilityPermission {
                 viewModel.startPermissionPolling()
             }
@@ -57,6 +69,8 @@ struct PopoverView: View {
             Text("TransLite")
                 .font(.system(size: 13, weight: .semibold))
 
+            trialBadge
+
             Spacer()
 
             HStack(spacing: 3) {
@@ -78,6 +92,36 @@ struct PopoverView: View {
                     .background(Color(NSColor.controlBackgroundColor))
                     .cornerRadius(3)
             }
+        }
+    }
+
+    @ViewBuilder
+    private var trialBadge: some View {
+        switch viewModel.trialStatus {
+        case .licensed:
+            Text("Pro")
+                .font(.system(size: 8, weight: .bold))
+                .foregroundColor(.white)
+                .padding(.horizontal, 5)
+                .padding(.vertical, 2)
+                .background(Color.green)
+                .cornerRadius(4)
+        case .active(let days):
+            Text("\(days)d left")
+                .font(.system(size: 8, weight: .medium))
+                .foregroundColor(.secondary)
+                .padding(.horizontal, 5)
+                .padding(.vertical, 2)
+                .background(Color(NSColor.controlBackgroundColor))
+                .cornerRadius(4)
+        case .expired:
+            Text("Expired")
+                .font(.system(size: 8, weight: .medium))
+                .foregroundColor(.white)
+                .padding(.horizontal, 5)
+                .padding(.vertical, 2)
+                .background(Color.red)
+                .cornerRadius(4)
         }
     }
 
@@ -317,6 +361,70 @@ struct PopoverView: View {
         }
         .background(Color(NSColor.controlBackgroundColor).opacity(0.7))
         .cornerRadius(cardCornerRadius)
+    }
+
+    // MARK: - License Card
+
+    private var licenseCard: some View {
+        VStack(spacing: 0) {
+            // Header
+            HStack(spacing: 6) {
+                Image(systemName: "exclamationmark.triangle.fill")
+                    .foregroundColor(.orange)
+                    .font(.system(size: 14))
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Trial Expired")
+                        .font(.system(size: 12, weight: .semibold))
+                    Text("Activate a license to continue")
+                        .font(.system(size: 10))
+                        .foregroundColor(.secondary)
+                }
+                Spacer()
+            }
+            .padding(cardPadding)
+
+            Divider().padding(.leading, cardPadding)
+
+            // License key input
+            VStack(spacing: 8) {
+                TextField("Enter license key", text: $viewModel.licenseKeyInput)
+                    .textFieldStyle(.plain)
+                    .padding(6)
+                    .background(Color(NSColor.textBackgroundColor))
+                    .cornerRadius(4)
+                    .font(.system(size: 11, design: .monospaced))
+
+                HStack(spacing: 8) {
+                    Button {
+                        viewModel.activateLicense()
+                    } label: {
+                        Text("Activate")
+                            .font(.system(size: 10, weight: .medium))
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 24)
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .disabled(viewModel.licenseKeyInput.isEmpty || viewModel.isActivatingLicense)
+
+                    Button {
+                        viewModel.openPurchasePage()
+                    } label: {
+                        Text("Buy License")
+                            .font(.system(size: 10, weight: .medium))
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 24)
+                    }
+                    .buttonStyle(.bordered)
+                }
+            }
+            .padding(cardPadding)
+        }
+        .background(Color.orange.opacity(0.1))
+        .cornerRadius(cardCornerRadius)
+        .overlay(
+            RoundedRectangle(cornerRadius: cardCornerRadius)
+                .stroke(Color.orange.opacity(0.3), lineWidth: 1)
+        )
     }
 
     // MARK: - Status Section

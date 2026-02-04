@@ -79,8 +79,14 @@ final class AppViewModel: ObservableObject {
     @Published var isTranslating: Bool = false
     @Published var hasAccessibilityPermission: Bool = false
 
+    // Trial & License
+    @Published var trialStatus: TrialManager.TrialStatus = .expired
+    @Published var licenseKeyInput: String = ""
+    @Published var isActivatingLicense: Bool = false
+
     // MARK: - Private Properties
 
+    private let trialManager = TrialManager.shared
     private let keychain = KeychainHelper.shared
     private let clipboard = ClipboardManager.shared
     private let openAI = OpenAIClient.shared
@@ -115,6 +121,10 @@ final class AppViewModel: ObservableObject {
 
         // Check accessibility permission
         self.hasAccessibilityPermission = accessibility.hasAccessibilityPermission
+
+        // Record usage and get trial status
+        trialManager.recordUsage()
+        self.trialStatus = trialManager.status
     }
 
     // MARK: - API Key Management
@@ -152,6 +162,12 @@ final class AppViewModel: ObservableObject {
     func translateClipboard() {
         guard !isTranslating else {
             statusMessage = "Translation in progress..."
+            return
+        }
+
+        // Check trial/license status
+        guard trialManager.canUseApp else {
+            statusMessage = "Trial expired - please activate license"
             return
         }
 
@@ -254,5 +270,44 @@ final class AppViewModel: ObservableObject {
         accessibility.openAccessibilitySettings()
         // Start polling after opening settings
         startPermissionPolling()
+    }
+
+    // MARK: - Trial & License
+
+    func refreshTrialStatus() {
+        trialStatus = trialManager.status
+    }
+
+    func activateLicense() {
+        let trimmedKey = licenseKeyInput.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        guard !trimmedKey.isEmpty else {
+            statusMessage = "Please enter a license key"
+            return
+        }
+
+        isActivatingLicense = true
+        statusMessage = "Activating license..."
+
+        Task {
+            let success = await trialManager.activateLicense(trimmedKey)
+
+            if success {
+                trialStatus = trialManager.status
+                licenseKeyInput = ""
+                statusMessage = "License activated!"
+            } else {
+                statusMessage = "Invalid license key"
+            }
+
+            isActivatingLicense = false
+        }
+    }
+
+    func openPurchasePage() {
+        // TODO: Replace with your LemonSqueezy product URL
+        if let url = URL(string: "https://translite.app/buy") {
+            NSWorkspace.shared.open(url)
+        }
     }
 }

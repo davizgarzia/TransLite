@@ -1,4 +1,4 @@
-name: TranslateBar
+name: TransLite
 options:
   bundleIdPrefix: com.translite
   deploymentTarget:

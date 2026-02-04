@@ -16,67 +16,90 @@ final class OpenAIClient {
     ///   - targetLanguage: The language to translate to (default: English)
     ///   - tone: The tone instruction for the translation
     /// - Returns: The translated text
-    func translate(text: String, apiKey: String, targetLanguage: String = "English", tone: String = "Preserve the original tone") async throws -> String {
-        let prompt = """
-        Translate to \(targetLanguage). \(tone).
+func translate(
+    text: String,
+    apiKey: String,
+    targetLanguage: String = "English",
+    tone: String = "Match the original tone. Allow minimal adjustments only if needed for naturalness."
+) async throws -> String {
 
-        Preserve the exact style and formatting:
-        - Keep lowercase if original is lowercase
-        - Don't add punctuation (periods, commas) that isn't in the original
-        - Don't add quotes unless the original has them
-        - Keep all emojis
+    let systemPrompt = """
+    You are a translation engine.
 
-        Only return the translation, nothing else.
+    Return ONLY the translated text.
 
-        \(text)
-        """
+    Preserve the original formatting and style as much as possible:
+    - Preserve case (lowercase stays lowercase)
+    - Preserve line breaks, spacing, lists, numbering
+    - Do NOT add quotes unless present in the original
+    - Do NOT add emojis or remove existing ones
+    - Do NOT add markdown, code blocks, or wrappers
 
-        let requestBody = OpenAIRequest(
-            model: "gpt-4o-mini",
-            messages: [
-                Message(role: "user", content: prompt)
-            ],
-            temperature: 0.1,
-            max_tokens: 2048
-        )
+    Translation rules:
+    - Keep the original meaning and tone
+    - Allow minimal rephrasing ONLY when a literal translation sounds unnatural
+    - Do NOT embellish, over-polish, or add new ideas
+    - Avoid intensifiers or filler words unless they exist in the original
+    - Punctuation may be adjusted only if strictly necessary for clarity in the target language
 
-        var request = URLRequest(url: endpoint)
-        request.httpMethod = "POST"
-        request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.httpBody = try JSONEncoder().encode(requestBody)
-        request.timeoutInterval = 30
+    If something cannot be translated, keep it as-is.
+    """
 
-        let (data, response) = try await session.data(for: request)
+    let userPrompt = """
+    Target language: \(targetLanguage)
+    Tone rule: \(tone)
 
-        guard let httpResponse = response as? HTTPURLResponse else {
-            throw OpenAIError.invalidResponse
-        }
+    TEXT:
+    \(text)
+    """
 
-        switch httpResponse.statusCode {
-        case 200:
-            let decoded = try JSONDecoder().decode(OpenAIResponse.self, from: data)
-            guard let content = decoded.choices.first?.message.content else {
-                throw OpenAIError.emptyResponse
-            }
-            return content.trimmingCharacters(in: .whitespacesAndNewlines)
+    let requestBody = OpenAIRequest(
+        model: "gpt-4o-mini",
+        messages: [
+            Message(role: "system", content: systemPrompt),
+            Message(role: "user", content: userPrompt)
+        ],
+        temperature: 0.1,
+        max_tokens: 2048
+    )
 
-        case 401:
-            throw OpenAIError.invalidAPIKey
+    var request = URLRequest(url: endpoint)
+    request.httpMethod = "POST"
+    request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
+    request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+    request.httpBody = try JSONEncoder().encode(requestBody)
+    request.timeoutInterval = 30
 
-        case 429:
-            throw OpenAIError.rateLimited
+    let (data, response) = try await session.data(for: request)
 
-        case 500...599:
-            throw OpenAIError.serverError
-
-        default:
-            if let errorResponse = try? JSONDecoder().decode(OpenAIErrorResponse.self, from: data) {
-                throw OpenAIError.apiError(errorResponse.error.message)
-            }
-            throw OpenAIError.unknownError(httpResponse.statusCode)
-        }
+    guard let httpResponse = response as? HTTPURLResponse else {
+        throw OpenAIError.invalidResponse
     }
+
+    switch httpResponse.statusCode {
+    case 200:
+        let decoded = try JSONDecoder().decode(OpenAIResponse.self, from: data)
+        guard let content = decoded.choices.first?.message.content else {
+            throw OpenAIError.emptyResponse
+        }
+        return content.trimmingCharacters(in: .whitespacesAndNewlines)
+
+    case 401:
+        throw OpenAIError.invalidAPIKey
+
+    case 429:
+        throw OpenAIError.rateLimited
+
+    case 500...599:
+        throw OpenAIError.serverError
+
+    default:
+        if let errorResponse = try? JSONDecoder().decode(OpenAIErrorResponse.self, from: data) {
+            throw OpenAIError.apiError(errorResponse.error.message)
+        }
+        throw OpenAIError.unknownError(httpResponse.statusCode)
+    }
+}
 }
 
 // MARK: - Request/Response Models

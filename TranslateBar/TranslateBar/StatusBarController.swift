@@ -26,11 +26,11 @@ final class StatusBarController {
 
         // Create context menu for right-click
         contextMenu = NSMenu()
-        contextMenu.addItem(NSMenuItem(title: "Quit TransLite", action: #selector(quitApp), keyEquivalent: "q"))
+        contextMenu.addItem(NSMenuItem(title: "Quit TranslateBar", action: #selector(quitApp), keyEquivalent: "q"))
 
         // Configure status item button
         if let button = statusItem.button {
-            button.image = NSImage(systemSymbolName: "globe", accessibilityDescription: "TransLite")
+            button.image = NSImage(systemSymbolName: "globe", accessibilityDescription: "TranslateBar")
             button.action = #selector(handleClick)
             button.target = self
             button.sendAction(on: [.leftMouseUp, .rightMouseUp])
@@ -117,7 +117,7 @@ final class StatusBarController {
         animationTimer?.invalidate()
         animationTimer = nil
         if let button = statusItem.button {
-            button.image = NSImage(systemSymbolName: "globe", accessibilityDescription: "TransLite")
+            button.image = NSImage(systemSymbolName: "globe", accessibilityDescription: "TranslateBar")
         }
     }
 }

@@ -3,7 +3,7 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 77;
+	objectVersion = 63;
 	objects = {
 
 /* Begin PBXBuildFile section */
@@ -25,13 +25,13 @@
 		0854A02989745CFFB5694ACC /* PopoverView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PopoverView.swift; sourceTree = "<group>"; };
 		1CAD151AD6F3451EE0453AAE /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		50614BB81672B6980950B81F /* ClipboardManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardManager.swift; sourceTree = "<group>"; };
-		5D684AD68F27EF6F459B7D84 /* TranslateBar.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = TranslateBar.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		5D684AD68F27EF6F459B7D84 /* TranslateBar.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; name = TranslateBar.app; path = TransLite.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		6BC48D115DB88758B693DE0B /* HotkeyManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HotkeyManager.swift; sourceTree = "<group>"; };
 		70C1206B53B974B615E890CB /* AppViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppViewModel.swift; sourceTree = "<group>"; };
 		87A4D3BEF633F1EA196CFC42 /* OpenAIClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OpenAIClient.swift; sourceTree = "<group>"; };
 		B4E78779434E39B3244F752B /* StatusBarController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatusBarController.swift; sourceTree = "<group>"; };
-		C608C5950AB9E38C3F59A539 /* AccessibilityHelper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccessibilityHelper.swift; sourceTree = "<group>"; };
 		BBBB5555666677778888CCCC /* TranslationHUD.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TranslationHUD.swift; sourceTree = "<group>"; };
+		C608C5950AB9E38C3F59A539 /* AccessibilityHelper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccessibilityHelper.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXGroup section */
@@ -103,7 +103,7 @@
 					};
 				};
 			};
-			buildConfigurationList = 88E2E9E6D40789A374BDC1D3 /* Build configuration list for PBXProject "TranslateBar" */;
+			buildConfigurationList = 88E2E9E6D40789A374BDC1D3 /* Build configuration list for PBXProject "TransLite" */;
 			compatibilityVersion = "Xcode 14.0";
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
@@ -113,7 +113,6 @@
 			);
 			mainGroup = 2E3BAFD5A736CCAC5A2272B2;
 			minimizedProjectReferenceProxies = 1;
-			preferredProjectObjectVersion = 77;
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
@@ -284,7 +283,7 @@
 					"@executable_path/../Frameworks",
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.translatebar.app;
-				PRODUCT_NAME = TranslateBar;
+				PRODUCT_NAME = TransLite;
 				SDKROOT = macosx;
 			};
 			name = Release;
@@ -301,7 +300,7 @@
 					"@executable_path/../Frameworks",
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.translatebar.app;
-				PRODUCT_NAME = TranslateBar;
+				PRODUCT_NAME = TransLite;
 				SDKROOT = macosx;
 			};
 			name = Debug;
@@ -318,7 +317,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Debug;
 		};
-		88E2E9E6D40789A374BDC1D3 /* Build configuration list for PBXProject "TranslateBar" */ = {
+		88E2E9E6D40789A374BDC1D3 /* Build configuration list for PBXProject "TransLite" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				5D80754715CFFBBD866299DC /* Debug */,

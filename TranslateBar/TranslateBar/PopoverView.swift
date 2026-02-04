@@ -14,12 +14,31 @@ struct PopoverView: View {
         return false
     }
 
+    private var isLicensed: Bool {
+        if case .licensed = viewModel.trialStatus { return true }
+        return false
+    }
+
+    private var trialDaysRemaining: Int {
+        if case .active(let days) = viewModel.trialStatus { return days }
+        return 0
+    }
+
+    private var trialProgress: Double {
+        let total = 7.0
+        let used = total - Double(trialDaysRemaining)
+        return used / total
+    }
+
+    @State private var showingLicenseInput = false
+
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             header
 
-            if case .expired = viewModel.trialStatus {
-                licenseCard
+            // Trial section (only if not licensed)
+            if !isLicensed {
+                trialSection
             }
 
             VStack(spacing: contentSpacing) {
@@ -69,8 +88,6 @@ struct PopoverView: View {
             Text("TransLite")
                 .font(.system(size: 13, weight: .semibold))
 
-            trialBadge
-
             Spacer()
 
             HStack(spacing: 3) {
@@ -95,33 +112,66 @@ struct PopoverView: View {
         }
     }
 
-    @ViewBuilder
-    private var trialBadge: some View {
-        switch viewModel.trialStatus {
-        case .licensed:
-            Text("Pro")
-                .font(.system(size: 8, weight: .bold))
-                .foregroundColor(.white)
-                .padding(.horizontal, 5)
-                .padding(.vertical, 2)
-                .background(Color.green)
-                .cornerRadius(4)
-        case .active(let days):
-            Text("\(days)d left")
-                .font(.system(size: 8, weight: .medium))
-                .foregroundColor(.secondary)
-                .padding(.horizontal, 5)
-                .padding(.vertical, 2)
-                .background(Color(NSColor.controlBackgroundColor))
-                .cornerRadius(4)
-        case .expired:
-            Text("Expired")
-                .font(.system(size: 8, weight: .medium))
-                .foregroundColor(.white)
-                .padding(.horizontal, 5)
-                .padding(.vertical, 2)
-                .background(Color.red)
-                .cornerRadius(4)
+    // MARK: - Trial Section
+
+    private var trialSection: some View {
+        VStack(spacing: 8) {
+            HStack {
+                VStack(alignment: .leading, spacing: 2) {
+                    if trialExpired {
+                        Text("Trial Expired")
+                            .font(.system(size: 11, weight: .semibold))
+                    } else {
+                        Text("\(trialDaysRemaining) days left in trial")
+                            .font(.system(size: 11, weight: .medium))
+                            .foregroundColor(.secondary)
+                    }
+                }
+
+                Spacer()
+
+                Menu {
+                    Button {
+                        showingLicenseInput = true
+                    } label: {
+                        Label("Enter License Key", systemImage: "key")
+                    }
+
+                    Divider()
+
+                    Button {
+                        viewModel.openPurchasePage()
+                    } label: {
+                        Label("Buy License", systemImage: "cart")
+                    }
+                } label: {
+                    UpgradeButton(text: trialExpired ? "Activate" : "Upgrade", isExpired: trialExpired)
+                }
+                .menuStyle(.borderlessButton)
+                .menuIndicator(.hidden)
+            }
+
+            if !trialExpired {
+                // Progress bar
+                GeometryReader { geometry in
+                    ZStack(alignment: .leading) {
+                        RoundedRectangle(cornerRadius: 2)
+                            .fill(Color.accentColor.opacity(0.3))
+                            .frame(height: 4)
+
+                        RoundedRectangle(cornerRadius: 2)
+                            .fill(Color.accentColor)
+                            .frame(width: geometry.size.width * trialProgress, height: 4)
+                    }
+                }
+                .frame(height: 4)
+            }
+        }
+        .padding(10)
+        .background(trialExpired ? Color.red.opacity(0.1) : Color.accentColor.opacity(0.1))
+        .cornerRadius(cardCornerRadius)
+        .sheet(isPresented: $showingLicenseInput) {
+            LicenseInputSheet(viewModel: viewModel, isPresented: $showingLicenseInput)
         }
     }
 
@@ -363,70 +413,6 @@ struct PopoverView: View {
         .cornerRadius(cardCornerRadius)
     }
 
-    // MARK: - License Card
-
-    private var licenseCard: some View {
-        VStack(spacing: 0) {
-            // Header
-            HStack(spacing: 6) {
-                Image(systemName: "exclamationmark.triangle.fill")
-                    .foregroundColor(.orange)
-                    .font(.system(size: 14))
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("Trial Expired")
-                        .font(.system(size: 12, weight: .semibold))
-                    Text("Activate a license to continue")
-                        .font(.system(size: 10))
-                        .foregroundColor(.secondary)
-                }
-                Spacer()
-            }
-            .padding(cardPadding)
-
-            Divider().padding(.leading, cardPadding)
-
-            // License key input
-            VStack(spacing: 8) {
-                TextField("Enter license key", text: $viewModel.licenseKeyInput)
-                    .textFieldStyle(.plain)
-                    .padding(6)
-                    .background(Color(NSColor.textBackgroundColor))
-                    .cornerRadius(4)
-                    .font(.system(size: 11, design: .monospaced))
-
-                HStack(spacing: 8) {
-                    Button {
-                        viewModel.activateLicense()
-                    } label: {
-                        Text("Activate")
-                            .font(.system(size: 10, weight: .medium))
-                            .frame(maxWidth: .infinity)
-                            .frame(height: 24)
-                    }
-                    .buttonStyle(.borderedProminent)
-                    .disabled(viewModel.licenseKeyInput.isEmpty || viewModel.isActivatingLicense)
-
-                    Button {
-                        viewModel.openPurchasePage()
-                    } label: {
-                        Text("Buy License")
-                            .font(.system(size: 10, weight: .medium))
-                            .frame(maxWidth: .infinity)
-                            .frame(height: 24)
-                    }
-                    .buttonStyle(.bordered)
-                }
-            }
-            .padding(cardPadding)
-        }
-        .background(Color.orange.opacity(0.1))
-        .cornerRadius(cardCornerRadius)
-        .overlay(
-            RoundedRectangle(cornerRadius: cardCornerRadius)
-                .stroke(Color.orange.opacity(0.3), lineWidth: 1)
-        )
-    }
-
     // MARK: - Status Section
 
     private var statusSection: some View {
@@ -529,6 +515,31 @@ private struct FeedbackMenu: View {
     }
 }
 
+private struct UpgradeButton: View {
+    let text: String
+    let isExpired: Bool
+    @State private var isHovered = false
+
+    private var baseColor: Color {
+        isExpired ? .red : .accentColor
+    }
+
+    var body: some View {
+        Text(text)
+            .font(.system(size: 10, weight: .semibold))
+            .foregroundColor(baseColor)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 5)
+            .background(baseColor.opacity(isHovered ? 0.2 : 0.1))
+            .cornerRadius(6)
+            .onHover { hovering in
+                withAnimation(.easeInOut(duration: 0.15)) {
+                    isHovered = hovering
+                }
+            }
+    }
+}
+
 private struct QuitButton: View {
     @State private var isHovered = false
 
@@ -544,6 +555,68 @@ private struct QuitButton: View {
         .onHover { hovering in
             isHovered = hovering
         }
+    }
+}
+
+// MARK: - License Input Sheet
+
+private struct LicenseInputSheet: View {
+    @ObservedObject var viewModel: AppViewModel
+    @Binding var isPresented: Bool
+
+    var body: some View {
+        VStack(spacing: 16) {
+            // Header
+            HStack {
+                Text("Activate License")
+                    .font(.headline)
+                Spacer()
+                Button {
+                    isPresented = false
+                } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .foregroundColor(.secondary)
+                }
+                .buttonStyle(.plain)
+            }
+
+            // Input
+            VStack(alignment: .leading, spacing: 6) {
+                Text("License Key")
+                    .font(.system(size: 11, weight: .medium))
+                    .foregroundColor(.secondary)
+
+                TextField("XXXXX-XXXXX-XXXXX-XXXXX", text: $viewModel.licenseKeyInput)
+                    .textFieldStyle(.roundedBorder)
+                    .font(.system(size: 12, design: .monospaced))
+            }
+
+            // Buttons
+            HStack(spacing: 12) {
+                Button("Cancel") {
+                    isPresented = false
+                }
+                .buttonStyle(.bordered)
+
+                Button("Activate") {
+                    viewModel.activateLicense()
+                    if case .licensed = viewModel.trialStatus {
+                        isPresented = false
+                    }
+                }
+                .buttonStyle(.borderedProminent)
+                .disabled(viewModel.licenseKeyInput.isEmpty || viewModel.isActivatingLicense)
+            }
+
+            // Status
+            if !viewModel.statusMessage.isEmpty {
+                Text(viewModel.statusMessage)
+                    .font(.system(size: 11))
+                    .foregroundColor(.secondary)
+            }
+        }
+        .padding(20)
+        .frame(width: 300)
     }
 }
 

@@ -36,18 +36,25 @@ struct PopoverView: View {
         VStack(alignment: .leading, spacing: 10) {
             header
 
-            // Trial section (only if not licensed)
-            if !isLicensed {
-                trialSection
-            }
+            switch viewModel.onboardingStep {
+            case .apiKey:
+                onboardingApiKeyCard
 
-            VStack(spacing: contentSpacing) {
-                settingsCard
-                apiKeyCard
-                autoPasteCard
+            case .permissions:
+                onboardingPermissionsCard
+
+            case .complete:
+                if !isLicensed {
+                    trialSection
+                }
+
+                VStack(spacing: contentSpacing) {
+                    translationCard
+                    keysCard
+                }
+                .opacity(trialExpired ? 0.5 : 1.0)
+                .disabled(trialExpired)
             }
-            .opacity(trialExpired ? 0.5 : 1.0)
-            .disabled(trialExpired)
 
             if !viewModel.statusMessage.isEmpty {
                 statusSection
@@ -108,6 +115,19 @@ struct PopoverView: View {
                     .padding(.vertical, 2)
                     .background(Color(NSColor.controlBackgroundColor))
                     .cornerRadius(3)
+
+                if !viewModel.autoPasteEnabled {
+                    Text("+")
+                        .font(.system(size: 9))
+                        .foregroundColor(.secondary.opacity(0.5))
+                    Text("⌘V")
+                        .font(.system(size: 9, weight: .medium))
+                        .foregroundColor(.secondary)
+                        .padding(.horizontal, 4)
+                        .padding(.vertical, 2)
+                        .background(Color(NSColor.controlBackgroundColor))
+                        .cornerRadius(3)
+                }
             }
         }
     }
@@ -130,25 +150,12 @@ struct PopoverView: View {
 
                 Spacer()
 
-                Menu {
-                    Button {
-                        showingLicenseInput = true
-                    } label: {
-                        Label("Enter License Key", systemImage: "key")
-                    }
-
-                    Divider()
-
-                    Button {
-                        viewModel.openPurchasePage()
-                    } label: {
-                        Label("Buy License", systemImage: "cart")
-                    }
+                Button {
+                    viewModel.openPurchasePage()
                 } label: {
-                    UpgradeButton(text: trialExpired ? "Activate" : "Upgrade", isExpired: trialExpired)
+                    UpgradeButton(text: trialExpired ? "Buy License" : "Upgrade", isExpired: trialExpired)
                 }
-                .menuStyle(.borderlessButton)
-                .menuIndicator(.hidden)
+                .buttonStyle(.plain)
             }
 
             if !trialExpired {
@@ -170,9 +177,6 @@ struct PopoverView: View {
         .padding(10)
         .background(trialExpired ? Color.red.opacity(0.1) : Color.accentColor.opacity(0.1))
         .cornerRadius(cardCornerRadius)
-        .sheet(isPresented: $showingLicenseInput) {
-            LicenseInputSheet(viewModel: viewModel, isPresented: $showingLicenseInput)
-        }
     }
 
     // MARK: - Settings Card
@@ -181,7 +185,7 @@ struct PopoverView: View {
         VStack(spacing: 0) {
             // Language row
             HStack {
-                Label("Language", systemImage: "character.bubble")
+                Label("Translate to", systemImage: "character.bubble")
                     .font(.system(size: 11))
                     .foregroundColor(.secondary)
                 Spacer()
@@ -358,6 +362,166 @@ struct PopoverView: View {
         .cornerRadius(cardCornerRadius)
     }
 
+    // MARK: - Onboarding: API Key
+
+    private var onboardingApiKeyCard: some View {
+        VStack(spacing: 0) {
+            // Welcome header
+            VStack(spacing: 4) {
+                Text("Welcome to TransLite")
+                    .font(.system(size: 13, weight: .semibold))
+                Text("Add your OpenAI API key to get started")
+                    .font(.system(size: 11))
+                    .foregroundColor(.secondary)
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 12)
+
+            Divider()
+
+            // API key input
+            VStack(spacing: 8) {
+                SecureField("sk-...", text: $viewModel.apiKeyInput)
+                    .textFieldStyle(.plain)
+                    .padding(8)
+                    .background(Color(NSColor.textBackgroundColor))
+                    .cornerRadius(6)
+                    .font(.system(size: 12, design: .monospaced))
+
+                Button {
+                    viewModel.saveAPIKey()
+                } label: {
+                    Text("Save API Key")
+                        .font(.system(size: 10, weight: .medium))
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 24)
+                }
+                .buttonStyle(.borderedProminent)
+                .disabled(viewModel.apiKeyInput.isEmpty)
+            }
+            .padding(cardPadding + 4)
+
+            Divider()
+
+            // Steps always visible
+            VStack(alignment: .leading, spacing: 8) {
+                Text("How to get an API key")
+                    .font(.system(size: 10, weight: .semibold))
+                    .foregroundColor(.secondary)
+
+                VStack(alignment: .leading, spacing: 6) {
+                    apiKeyStep(number: 1, text: "Sign in at platform.openai.com")
+                    apiKeyStep(number: 2, text: "Go to API Keys section")
+                    apiKeyStep(number: 3, text: "Create new secret key")
+                    apiKeyStep(number: 4, text: "Copy and paste above")
+                }
+
+                Button {
+                    if let url = URL(string: "https://platform.openai.com/api-keys") {
+                        NSWorkspace.shared.open(url)
+                    }
+                } label: {
+                    HStack(spacing: 4) {
+                        Image(systemName: "arrow.up.right.square")
+                        Text("Open OpenAI")
+                    }
+                    .font(.system(size: 10, weight: .medium))
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 24)
+                }
+                .buttonStyle(.bordered)
+            }
+            .padding(cardPadding + 4)
+        }
+        .background(Color(NSColor.controlBackgroundColor).opacity(0.7))
+        .cornerRadius(cardCornerRadius)
+    }
+
+    // MARK: - Onboarding: Permissions
+
+    private var onboardingPermissionsCard: some View {
+        VStack(spacing: 0) {
+            // Header
+            VStack(spacing: 8) {
+                Image(systemName: "doc.on.clipboard.fill")
+                    .font(.system(size: 28))
+                    .foregroundColor(.accentColor)
+
+                Text("Enable Auto-Paste")
+                    .font(.system(size: 14, weight: .semibold))
+
+                Text("For the best experience, allow TransLite to paste translated text automatically")
+                    .font(.system(size: 11))
+                    .foregroundColor(.secondary)
+                    .multilineTextAlignment(.center)
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 16)
+            .padding(.horizontal, 12)
+
+            Divider()
+
+            // Shortcut preview
+            VStack(spacing: 8) {
+                Text("Your workflow will be:")
+                    .font(.system(size: 10, weight: .medium))
+                    .foregroundColor(.secondary)
+
+                HStack(spacing: 6) {
+                    shortcutBadge("⌘C")
+                    Image(systemName: "arrow.right")
+                        .font(.system(size: 8))
+                        .foregroundColor(.secondary)
+                    shortcutBadge("⌘⇧T")
+                    Image(systemName: "arrow.right")
+                        .font(.system(size: 8))
+                        .foregroundColor(.secondary)
+                    Text("Done ✨")
+                        .font(.system(size: 10, weight: .medium))
+                        .foregroundColor(.accentColor)
+                }
+            }
+            .padding(.vertical, 12)
+
+            Divider()
+
+            // Buttons
+            VStack(spacing: 8) {
+                Button {
+                    viewModel.enableAutoPasteWithPermissions()
+                } label: {
+                    Text("Enable Auto-Paste")
+                        .font(.system(size: 10, weight: .medium))
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 24)
+                }
+                .buttonStyle(.borderedProminent)
+
+                Button {
+                    viewModel.skipAutoPaste()
+                } label: {
+                    Text("Skip for now")
+                        .font(.system(size: 10))
+                        .foregroundColor(.secondary)
+                }
+                .buttonStyle(.plain)
+            }
+            .padding(cardPadding + 4)
+        }
+        .background(Color(NSColor.controlBackgroundColor).opacity(0.7))
+        .cornerRadius(cardCornerRadius)
+    }
+
+    private func shortcutBadge(_ text: String) -> some View {
+        Text(text)
+            .font(.system(size: 10, weight: .medium))
+            .foregroundColor(.primary)
+            .padding(.horizontal, 8)
+            .padding(.vertical, 4)
+            .background(Color(NSColor.controlBackgroundColor))
+            .cornerRadius(4)
+    }
+
     private func apiKeyStep(number: Int, text: String) -> some View {
         HStack(spacing: 6) {
             Text("\(number)")
@@ -413,6 +577,77 @@ struct PopoverView: View {
         .cornerRadius(cardCornerRadius)
     }
 
+    // MARK: - License Card
+
+    private var licenseCard: some View {
+        VStack(spacing: 0) {
+            HStack {
+                Label("License", systemImage: "key.fill")
+                    .font(.system(size: 11))
+                    .foregroundColor(.secondary)
+
+                if case .licensed = viewModel.trialStatus {
+                    Image(systemName: "checkmark.circle.fill")
+                        .foregroundColor(.green)
+                        .font(.system(size: 10))
+                }
+
+                Spacer()
+
+                if case .licensed = viewModel.trialStatus {
+                    Button("Remove") {
+                        TrialManager.shared.removeLicense()
+                        viewModel.refreshTrialStatus()
+                    }
+                    .font(.system(size: 9, weight: .medium))
+                    .buttonStyle(.bordered)
+                    .controlSize(.small)
+                } else {
+                    Button("Add") {
+                        withAnimation(.easeInOut(duration: 0.2)) {
+                            showingLicenseInput.toggle()
+                        }
+                    }
+                    .font(.system(size: 9, weight: .medium))
+                    .buttonStyle(.bordered)
+                    .controlSize(.small)
+                }
+            }
+            .padding(.horizontal, cardPadding)
+            .frame(height: 36)
+
+            if showingLicenseInput {
+                Divider().padding(.leading, cardPadding)
+
+                HStack(spacing: 8) {
+                    TextField("License key", text: $viewModel.licenseKeyInput)
+                        .textFieldStyle(.plain)
+                        .padding(6)
+                        .background(Color(NSColor.textBackgroundColor))
+                        .cornerRadius(4)
+                        .font(.system(size: 11, design: .monospaced))
+
+                    Button {
+                        viewModel.activateLicense()
+                        if case .licensed = viewModel.trialStatus {
+                            withAnimation {
+                                showingLicenseInput = false
+                            }
+                        }
+                    } label: {
+                        Text("Activate")
+                            .font(.system(size: 10, weight: .medium))
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .disabled(viewModel.licenseKeyInput.isEmpty || viewModel.isActivatingLicense)
+                }
+                .padding(cardPadding)
+            }
+        }
+        .background(Color(NSColor.controlBackgroundColor).opacity(0.7))
+        .cornerRadius(cardCornerRadius)
+    }
+
     // MARK: - Status Section
 
     private var statusSection: some View {
@@ -435,6 +670,10 @@ struct PopoverView: View {
             FeedbackMenu()
 
             Spacer()
+
+            #if DEBUG
+            DebugMenu(viewModel: viewModel)
+            #endif
 
             QuitButton()
         }
@@ -540,6 +779,83 @@ private struct UpgradeButton: View {
     }
 }
 
+#if DEBUG
+private struct DebugMenu: View {
+    @ObservedObject var viewModel: AppViewModel
+    @State private var isHovered = false
+
+    private var trialInfo: String {
+        let info = TrialManager.shared.debugInfo
+        return "Start: \(info.startDate)\nLast: \(info.lastUsed)\nStatus: \(info.status)"
+    }
+
+    var body: some View {
+        Menu {
+            Section("Current State") {
+                Text(trialInfo)
+                    .font(.system(size: 10, design: .monospaced))
+            }
+
+            Divider()
+
+            Section("Trial") {
+                Button("Reset Trial (7 days)") {
+                    TrialManager.shared.debugResetTrial()
+                    viewModel.refreshTrialStatus()
+                }
+                Button("Expire Trial") {
+                    TrialManager.shared.debugExpireTrial()
+                    viewModel.refreshTrialStatus()
+                }
+                Button("Set 1 Day Left") {
+                    TrialManager.shared.debugSetDaysLeft(1)
+                    viewModel.refreshTrialStatus()
+                }
+                Button("Set 3 Days Left") {
+                    TrialManager.shared.debugSetDaysLeft(3)
+                    viewModel.refreshTrialStatus()
+                }
+            }
+
+            Divider()
+
+            Section("License") {
+                Button("Add Fake License") {
+                    Task {
+                        await TrialManager.shared.activateLicense("DEBUG-LICENSE-KEY")
+                        viewModel.refreshTrialStatus()
+                    }
+                }
+                Button("Remove License") {
+                    TrialManager.shared.removeLicense()
+                    viewModel.refreshTrialStatus()
+                }
+            }
+
+            Divider()
+
+            Section("Onboarding") {
+                Button("Reset Everything") {
+                    UserDefaults.standard.set(false, forKey: "onboardingComplete")
+                    TrialManager.shared.debugResetTrial()
+                    viewModel.onboardingStep = .apiKey
+                    viewModel.deleteAPIKey()
+                }
+            }
+        } label: {
+            Image(systemName: "ladybug")
+                .font(.system(size: 11, weight: .medium))
+                .foregroundColor(isHovered ? .primary : .secondary)
+        }
+        .menuStyle(.borderlessButton)
+        .menuIndicator(.hidden)
+        .onHover { hovering in
+            isHovered = hovering
+        }
+    }
+}
+#endif
+
 private struct QuitButton: View {
     @State private var isHovered = false
 
@@ -555,68 +871,6 @@ private struct QuitButton: View {
         .onHover { hovering in
             isHovered = hovering
         }
-    }
-}
-
-// MARK: - License Input Sheet
-
-private struct LicenseInputSheet: View {
-    @ObservedObject var viewModel: AppViewModel
-    @Binding var isPresented: Bool
-
-    var body: some View {
-        VStack(spacing: 16) {
-            // Header
-            HStack {
-                Text("Activate License")
-                    .font(.headline)
-                Spacer()
-                Button {
-                    isPresented = false
-                } label: {
-                    Image(systemName: "xmark.circle.fill")
-                        .foregroundColor(.secondary)
-                }
-                .buttonStyle(.plain)
-            }
-
-            // Input
-            VStack(alignment: .leading, spacing: 6) {
-                Text("License Key")
-                    .font(.system(size: 11, weight: .medium))
-                    .foregroundColor(.secondary)
-
-                TextField("XXXXX-XXXXX-XXXXX-XXXXX", text: $viewModel.licenseKeyInput)
-                    .textFieldStyle(.roundedBorder)
-                    .font(.system(size: 12, design: .monospaced))
-            }
-
-            // Buttons
-            HStack(spacing: 12) {
-                Button("Cancel") {
-                    isPresented = false
-                }
-                .buttonStyle(.bordered)
-
-                Button("Activate") {
-                    viewModel.activateLicense()
-                    if case .licensed = viewModel.trialStatus {
-                        isPresented = false
-                    }
-                }
-                .buttonStyle(.borderedProminent)
-                .disabled(viewModel.licenseKeyInput.isEmpty || viewModel.isActivatingLicense)
-            }
-
-            // Status
-            if !viewModel.statusMessage.isEmpty {
-                Text(viewModel.statusMessage)
-                    .font(.system(size: 11))
-                    .foregroundColor(.secondary)
-            }
-        }
-        .padding(20)
-        .frame(width: 300)
     }
 }
 

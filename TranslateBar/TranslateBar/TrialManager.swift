@@ -189,4 +189,50 @@ final class TrialManager {
         ]
         SecItemDelete(query as CFDictionary)
     }
+
+    // MARK: - Debug Methods
+
+    #if DEBUG
+    var debugInfo: (startDate: String, lastUsed: String, status: String) {
+        let formatter = DateFormatter()
+        formatter.dateStyle = .short
+        formatter.timeStyle = .short
+
+        let start = trialStartDate.map { formatter.string(from: $0) } ?? "nil"
+        let last = lastUsedDate.map { formatter.string(from: $0) } ?? "nil"
+
+        let statusStr: String
+        switch status {
+        case .active(let days):
+            statusStr = "Active (\(days)d left)"
+        case .expired:
+            statusStr = "Expired"
+        case .licensed:
+            statusStr = "Licensed"
+        }
+
+        return (start, last, statusStr)
+    }
+
+    func debugResetTrial() {
+        let now = Date()
+        saveDate(now, forKey: trialStartKey)
+        saveDate(now, forKey: lastUsedKey)
+        deleteLicenseKey()
+    }
+
+    func debugExpireTrial() {
+        let expiredDate = Calendar.current.date(byAdding: .day, value: -(trialDays + 1), to: Date())!
+        saveDate(expiredDate, forKey: trialStartKey)
+        saveDate(Date(), forKey: lastUsedKey)
+        deleteLicenseKey()
+    }
+
+    func debugSetDaysLeft(_ days: Int) {
+        let startDate = Calendar.current.date(byAdding: .day, value: -(trialDays - days), to: Date())!
+        saveDate(startDate, forKey: trialStartKey)
+        saveDate(Date(), forKey: lastUsedKey)
+        deleteLicenseKey()
+    }
+    #endif
 }

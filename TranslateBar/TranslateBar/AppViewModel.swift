@@ -84,6 +84,14 @@ final class AppViewModel: ObservableObject {
     @Published var licenseKeyInput: String = ""
     @Published var isActivatingLicense: Bool = false
 
+    // Onboarding
+    enum OnboardingStep {
+        case apiKey
+        case permissions
+        case complete
+    }
+    @Published var onboardingStep: OnboardingStep = .apiKey
+
     // MARK: - Private Properties
 
     private let trialManager = TrialManager.shared
@@ -97,7 +105,10 @@ final class AppViewModel: ObservableObject {
     // MARK: - Initialization
 
     init() {
-        // Load preferences
+        // Load preferences - auto-paste enabled by default
+        if UserDefaults.standard.object(forKey: "autoPasteEnabled") == nil {
+            UserDefaults.standard.set(true, forKey: "autoPasteEnabled")
+        }
         self.autoPasteEnabled = UserDefaults.standard.bool(forKey: "autoPasteEnabled")
 
         // Load target language
@@ -125,6 +136,15 @@ final class AppViewModel: ObservableObject {
         // Record usage and get trial status
         trialManager.recordUsage()
         self.trialStatus = trialManager.status
+
+        // Set onboarding step
+        if !hasAPIKey {
+            self.onboardingStep = .apiKey
+        } else if !UserDefaults.standard.bool(forKey: "onboardingComplete") {
+            self.onboardingStep = .permissions
+        } else {
+            self.onboardingStep = .complete
+        }
     }
 
     // MARK: - API Key Management
@@ -145,16 +165,46 @@ final class AppViewModel: ObservableObject {
         if keychain.saveAPIKey(trimmedKey) {
             hasAPIKey = true
             apiKeyInput = ""
-            statusMessage = "API key saved securely"
+            statusMessage = ""
+
+            // Go to permissions step
+            onboardingStep = .permissions
         } else {
             statusMessage = "Failed to save API key"
         }
+    }
+
+    // MARK: - Onboarding
+
+    func enableAutoPasteWithPermissions() {
+        autoPasteEnabled = true
+        accessibility.requestAccessibilityPermission()
+        startPermissionPolling()
+
+        // Complete onboarding after a short delay
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
+            self?.completeOnboarding()
+        }
+    }
+
+    func skipAutoPaste() {
+        autoPasteEnabled = false
+        completeOnboarding()
+    }
+
+    private func completeOnboarding() {
+        UserDefaults.standard.set(true, forKey: "onboardingComplete")
+        onboardingStep = .complete
     }
 
     func deleteAPIKey() {
         keychain.deleteAPIKey()
         hasAPIKey = false
         statusMessage = "API key removed"
+
+        // Reset onboarding
+        UserDefaults.standard.set(false, forKey: "onboardingComplete")
+        onboardingStep = .apiKey
     }
 
     // MARK: - Translation

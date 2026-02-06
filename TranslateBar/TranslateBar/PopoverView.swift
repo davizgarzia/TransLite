@@ -92,7 +92,7 @@ struct PopoverView: View {
 
     private var header: some View {
         HStack(spacing: 6) {
-            Image(systemName: "globe.americas.fill")
+            Image(systemName: "globe")
                 .font(.system(size: 16, weight: .medium))
                 .foregroundColor(.accentColor)
 
@@ -389,7 +389,7 @@ struct PopoverView: View {
         VStack(spacing: 0) {
             // Welcome header with icon
             VStack(spacing: 12) {
-                Image(systemName: "globe.americas.fill")
+                Image(systemName: "globe")
                     .font(.system(size: 36))
                     .foregroundColor(.accentColor)
 

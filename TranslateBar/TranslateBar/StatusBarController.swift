@@ -9,10 +9,8 @@ final class StatusBarController {
     private var popover: NSPopover
     private var eventMonitor: Any?
     private var contextMenu: NSMenu
-    private var animationTimer: Timer?
-    private var animationFrame: Int = 0
+    private var spinner: NSProgressIndicator?
     private var cancellables = Set<AnyCancellable>()
-    private let animationIcons = ["globe", "globe.americas.fill", "globe.europe.africa.fill", "globe.asia.australia.fill"]
 
     init(viewModel: AppViewModel) {
         // Create status item
@@ -30,7 +28,7 @@ final class StatusBarController {
 
         // Configure status item button
         if let button = statusItem.button {
-            button.image = NSImage(systemSymbolName: "globe.americas.fill", accessibilityDescription: "TransLite")
+            button.image = NSImage(systemSymbolName: "globe", accessibilityDescription: "TransLite")
             button.action = #selector(handleClick)
             button.target = self
             button.sendAction(on: [.leftMouseUp, .rightMouseUp])
@@ -48,14 +46,14 @@ final class StatusBarController {
             }
         }
 
-        // Observe translation state for icon animation
+        // Observe translation state for spinner
         viewModel.$isTranslating
             .receive(on: DispatchQueue.main)
             .sink { [weak self] isTranslating in
                 if isTranslating {
-                    self?.startIconAnimation()
+                    self?.startSpinner()
                 } else {
-                    self?.stopIconAnimation()
+                    self?.stopSpinner()
                 }
             }
             .store(in: &cancellables)
@@ -103,26 +101,41 @@ final class StatusBarController {
         NSApplication.shared.terminate(nil)
     }
 
-    // MARK: - Icon Animation
+    // MARK: - Spinner Animation
 
-    private func startIconAnimation() {
-        animationFrame = 0
-        animationTimer = Timer.scheduledTimer(withTimeInterval: 0.3, repeats: true) { [weak self] _ in
-            Task { @MainActor in
-                guard let self = self else { return }
-                self.animationFrame = (self.animationFrame + 1) % self.animationIcons.count
-                if let button = self.statusItem.button {
-                    button.image = NSImage(systemSymbolName: self.animationIcons[self.animationFrame], accessibilityDescription: "Translating")
-                }
-            }
-        }
+    private func startSpinner() {
+        guard let button = statusItem.button else { return }
+        
+        // Hide the icon
+        button.image = nil
+        
+        // Create and configure spinner
+        let spinner = NSProgressIndicator()
+        spinner.style = .spinning
+        spinner.controlSize = .small
+        spinner.translatesAutoresizingMaskIntoConstraints = false
+        
+        // Add spinner to button
+        button.addSubview(spinner)
+        
+        // Center the spinner
+        NSLayoutConstraint.activate([
+            spinner.centerXAnchor.constraint(equalTo: button.centerXAnchor),
+            spinner.centerYAnchor.constraint(equalTo: button.centerYAnchor)
+        ])
+        
+        spinner.startAnimation(nil)
+        self.spinner = spinner
     }
 
-    private func stopIconAnimation() {
-        animationTimer?.invalidate()
-        animationTimer = nil
+    private func stopSpinner() {
+        spinner?.stopAnimation(nil)
+        spinner?.removeFromSuperview()
+        spinner = nil
+        
+        // Restore the icon
         if let button = statusItem.button {
-            button.image = NSImage(systemSymbolName: "globe.americas.fill", accessibilityDescription: "TransLite")
+            button.image = NSImage(systemSymbolName: "globe", accessibilityDescription: "TransLite")
         }
     }
 }

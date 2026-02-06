@@ -371,8 +371,7 @@ final class AppViewModel: ObservableObject {
     }
 
     func openPurchasePage() {
-        // TODO: Replace with your LemonSqueezy product URL
-        if let url = URL(string: "https://translite.app/buy") {
+        if let url = URL(string: "https://translite.lemonsqueezy.com/checkout/buy/e4acbf88-40ff-47a9-a07c-e82dda0a4015") {
             NSWorkspace.shared.open(url)
         }
     }

@@ -1,5 +1,6 @@
 import Foundation
 import Security
+import IOKit
 
 /// Manages trial period and license validation using Keychain for persistence
 final class TrialManager {
@@ -94,24 +95,107 @@ final class TrialManager {
         getLicenseKey() != nil
     }
 
-    /// Validates and saves a license key
+    /// Validates and saves a license key using LemonSqueezy API
     /// - Parameter key: The license key to validate
     /// - Returns: True if the license is valid and was saved
     func activateLicense(_ key: String) async -> Bool {
-        // TODO: Validate against LemonSqueezy API
-        // For now, accept any non-empty key that starts with expected prefix
         let trimmedKey = key.trimmingCharacters(in: .whitespacesAndNewlines)
-
         guard !trimmedKey.isEmpty else { return false }
 
-        // In production, validate against LemonSqueezy API:
-        // let isValid = await LemonSqueezyAPI.validateLicense(trimmedKey)
-        // if isValid { saveLicenseKey(trimmedKey) }
-        // return isValid
+        // Validate against LemonSqueezy API
+        let isValid = await validateWithLemonSqueezy(trimmedKey)
 
-        // For now, save any key (replace with real validation later)
-        saveLicenseKey(trimmedKey)
-        return true
+        if isValid {
+            saveLicenseKey(trimmedKey)
+        }
+
+        return isValid
+    }
+
+    /// Validates a license key with LemonSqueezy's API
+    private func validateWithLemonSqueezy(_ licenseKey: String) async -> Bool {
+        let url = URL(string: "https://api.lemonsqueezy.com/v1/licenses/activate")!
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue("application/json", forHTTPHeaderField: "Accept")
+
+        // Get a unique instance identifier for this Mac
+        let instanceId = getOrCreateInstanceId()
+
+        let body: [String: Any] = [
+            "license_key": licenseKey,
+            "instance_name": instanceId
+        ]
+
+        do {
+            request.httpBody = try JSONSerialization.data(withJSONObject: body)
+
+            let (data, response) = try await URLSession.shared.data(for: request)
+
+            guard let httpResponse = response as? HTTPURLResponse else {
+                return false
+            }
+
+            // 200 = activated, 400 = already activated (which is fine)
+            if httpResponse.statusCode == 200 || httpResponse.statusCode == 400 {
+                // Parse response to check if valid
+                if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
+                    // Check if license is valid (activated or already activated)
+                    if let activated = json["activated"] as? Bool, activated {
+                        return true
+                    }
+                    // Check for "already activated" error (still valid)
+                    if let error = json["error"] as? String,
+                       error.contains("already") {
+                        return true
+                    }
+                    // Check meta for valid status
+                    if let meta = json["meta"] as? [String: Any],
+                       let valid = meta["valid"] as? Bool {
+                        return valid
+                    }
+                }
+            }
+
+            return false
+        } catch {
+            print("License validation error: \(error)")
+            return false
+        }
+    }
+
+    /// Gets or creates a unique instance identifier for this Mac
+    private func getOrCreateInstanceId() -> String {
+        let instanceKey = "instance-id"
+
+        if let existingId = getString(forKey: instanceKey) {
+            return existingId
+        }
+
+        // Create a new instance ID based on hardware UUID or generate random
+        let newId: String
+        if let hardwareUUID = getHardwareUUID() {
+            newId = "mac-\(hardwareUUID.prefix(8))"
+        } else {
+            newId = "mac-\(UUID().uuidString.prefix(8))"
+        }
+
+        saveString(newId, forKey: instanceKey)
+        return newId
+    }
+
+    /// Gets the hardware UUID of this Mac
+    private func getHardwareUUID() -> String? {
+        let service = IOServiceGetMatchingService(kIOMainPortDefault, IOServiceMatching("IOPlatformExpertDevice"))
+        defer { IOObjectRelease(service) }
+
+        guard let uuid = IORegistryEntryCreateCFProperty(service, "IOPlatformUUID" as CFString, kCFAllocatorDefault, 0)?.takeRetainedValue() as? String else {
+            return nil
+        }
+
+        return uuid
     }
 
     func removeLicense() {

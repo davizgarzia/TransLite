@@ -6,17 +6,17 @@
         <description>Updates for TransLite</description>
         <language>en</language>
 
-        <!-- Versión actual: 1.0.1 -->
+        <!-- Current version: 1.0.1 -->
         <item>
             <title>Version 1.0.1</title>
-            <pubDate>Fri, 06 Feb 2026 17:53:15 +0100</pubDate>
+            <pubDate>Fri, 06 Feb 2026 17:56:44 +0100</pubDate>
             <sparkle:version>2</sparkle:version>
             <sparkle:shortVersionString>1.0.1</sparkle:shortVersionString>
             <sparkle:minimumSystemVersion>13.0</sparkle:minimumSystemVersion>
             <description><![CDATA[
                 <h2>TransLite 1.0.1</h2>
                 <ul>
-                    <li>Añadida opción "Check for Updates" en el menú</li>
+                    <li>Added "Check for Updates" option in menu</li>
                 </ul>
             ]]></description>
             <enclosure
@@ -26,7 +26,7 @@
                 type="application/octet-stream" />
         </item>
 
-        <!-- Versión anterior: 1.0.0 -->
+        <!-- Previous version: 1.0.0 -->
         <item>
             <title>Version 1.0.0</title>
             <pubDate>Fri, 06 Feb 2026 17:38:57 +0100</pubDate>
@@ -36,8 +36,8 @@
             <description><![CDATA[
                 <h2>TransLite 1.0.0</h2>
                 <ul>
-                    <li>Primera versión</li>
-                    <li>Auto-actualizaciones con Sparkle</li>
+                    <li>Initial release</li>
+                    <li>Auto-updates with Sparkle</li>
                 </ul>
             ]]></description>
             <enclosure

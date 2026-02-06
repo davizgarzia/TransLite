@@ -450,100 +450,96 @@ struct PopoverView: View {
     // MARK: - Onboarding: API Key
 
     private var onboardingApiKeyCard: some View {
-        VStack(spacing: 8) {
-            // Main card
-            VStack(spacing: 0) {
-                // Header with OpenAI logo
-                VStack(spacing: 8) {
-                    Image("OpenAIIcon")
-                        .resizable()
-                        .aspectRatio(contentMode: .fit)
-                        .frame(width: 32, height: 32)
-                    
-                    Text("Connect your OpenAI Key")
-                        .font(.system(size: 13, weight: .semibold))
-                    
+        VStack(spacing: 0) {
+            // Header with OpenAI logo
+            VStack(spacing: 8) {
+                Image("OpenAIIcon")
+                    .resizable()
+                    .aspectRatio(contentMode: .fit)
+                    .frame(width: 32, height: 32)
+                
+                Text("Add your OpenAI Key")
+                    .font(.system(size: 13, weight: .semibold))
+                
+                HStack(spacing: 4) {
                     Text("Your API key, your data. We never store or read your content.")
                         .font(.system(size: 10))
                         .foregroundColor(.secondary)
                         .multilineTextAlignment(.center)
                         .fixedSize(horizontal: false, vertical: true)
                 }
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 12)
-                .padding(.horizontal, 12)
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 12)
+            .padding(.horizontal, 12)
 
-                Divider()
+            Divider()
 
-                // API key input
-                VStack(spacing: 8) {
-                    SecureField("sk-...", text: $viewModel.apiKeyInput)
-                        .textFieldStyle(.plain)
-                        .padding(8)
-                        .background(Color(NSColor.textBackgroundColor))
-                        .cornerRadius(6)
-                        .font(.system(size: 12, design: .monospaced))
+            // API key input
+            VStack(spacing: 8) {
+                SecureField("sk-...", text: $viewModel.apiKeyInput)
+                    .textFieldStyle(.plain)
+                    .padding(8)
+                    .background(Color(NSColor.textBackgroundColor))
+                    .cornerRadius(6)
+                    .font(.system(size: 12, design: .monospaced))
 
-                    Button {
-                        viewModel.saveAPIKey()
-                    } label: {
-                        Text("Save API Key")
-                            .font(.system(size: 10, weight: .medium))
-                            .frame(maxWidth: .infinity)
-                            .frame(height: 24)
-                    }
-                    .buttonStyle(.borderedProminent)
-                    .disabled(viewModel.apiKeyInput.isEmpty)
-                }
-                .padding(cardPadding + 4)
-
-                Divider()
-
-                // Steps to get API key
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("How to get an API key")
-                        .font(.system(size: 10, weight: .semibold))
-                        .foregroundColor(.secondary)
-
-                    VStack(alignment: .leading, spacing: 6) {
-                        apiKeyStep(number: 1, text: "Sign in at platform.openai.com")
-                        apiKeyStep(number: 2, text: "Go to API Keys section")
-                        apiKeyStep(number: 3, text: "Create new secret key")
-                        apiKeyStep(number: 4, text: "Copy and paste above")
-                    }
-
-                    Button {
-                        if let url = URL(string: "https://platform.openai.com/api-keys") {
-                            NSWorkspace.shared.open(url)
-                        }
-                    } label: {
-                        HStack(spacing: 4) {
-                            Image(systemName: "arrow.up.right.square")
-                            Text("Open OpenAI")
-                        }
+                Button {
+                    viewModel.saveAPIKey()
+                } label: {
+                    Text("Save API Key")
                         .font(.system(size: 10, weight: .medium))
                         .frame(maxWidth: .infinity)
                         .frame(height: 24)
-                    }
-                    .buttonStyle(.bordered)
                 }
-                .padding(cardPadding + 4)
+                .buttonStyle(.borderedProminent)
+                .disabled(viewModel.apiKeyInput.isEmpty)
             }
-            .background(Color(NSColor.controlBackgroundColor).opacity(0.7))
-            .cornerRadius(cardCornerRadius)
-            
-            // Pricing disclaimer - separate from main card
-            Text("OpenAI charges only for usage. We use gpt-4o-mini (~1,500 words/translation). With normal use, $5 = 15,000+ translations.")
-                .font(.system(size: 9))
-                .foregroundColor(.secondary)
-                .multilineTextAlignment(.center)
-                .fixedSize(horizontal: false, vertical: true)
-                .padding(.vertical, 8)
-                .padding(.horizontal, 12)
-                .frame(maxWidth: .infinity)
-                .background(Color(NSColor.textBackgroundColor).opacity(0.3))
-                .cornerRadius(cardCornerRadius)
+            .padding(cardPadding + 4)
+
+            Divider()
+
+            // Steps to get API key
+            VStack(alignment: .leading, spacing: 8) {
+                Text("How to get an API key")
+                    .font(.system(size: 10, weight: .semibold))
+                    .foregroundColor(.secondary)
+
+                VStack(alignment: .leading, spacing: 6) {
+                    apiKeyStep(number: 1, text: "Sign in at platform.openai.com")
+                    apiKeyStep(number: 2, text: "Go to API Keys section")
+                    apiKeyStep(number: 3, text: "Create new secret key")
+                    apiKeyStep(number: 4, text: "Copy and paste above")
+                }
+
+                Button {
+                    if let url = URL(string: "https://platform.openai.com/api-keys") {
+                        NSWorkspace.shared.open(url)
+                    }
+                } label: {
+                    HStack(spacing: 4) {
+                        Image(systemName: "arrow.up.right.square")
+                        Text("Open OpenAI")
+                    }
+                    .font(.system(size: 10, weight: .medium))
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 24)
+                }
+                .buttonStyle(.bordered)
+                
+                // Pricing info
+                HStack(spacing: 6) {                  
+                    Text("OpenAI charges only for usage. This app uses gpt-4o-mini (~1,500 words/translation). With normal use, $5 = 15,000+ translations.")
+                        .font(.system(size: 9))
+                        .foregroundColor(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                .padding(.top, 2)
+            }
+            .padding(cardPadding + 4)
         }
+        .background(Color(NSColor.controlBackgroundColor).opacity(0.7))
+        .cornerRadius(cardCornerRadius)
     }
 
     // MARK: - Onboarding: Permissions

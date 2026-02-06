@@ -6,6 +6,11 @@ options:
   xcodeVersion: "15.0"
   generateEmptyDirectories: true
 
+packages:
+  Sparkle:
+    url: https://github.com/sparkle-project/Sparkle
+    from: "2.5.0"
+
 settings:
   base:
     MARKETING_VERSION: "1.0"
@@ -23,6 +28,8 @@ targets:
       - path: TransLite
         excludes:
           - "**/*.entitlements"
+    dependencies:
+      - package: Sparkle
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.translite.app

@@ -3,7 +3,7 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 63;
+	objectVersion = 77;
 	objects = {
 
 /* Begin PBXBuildFile section */
@@ -19,6 +19,7 @@
 		CA79F396CD4C60F704137DE0 /* PopoverView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB3319C9F4B1BEDB74E4A6C3 /* PopoverView.swift */; };
 		CDBE5A749B2D4D106B1C5FA1 /* TranslationHUD.swift in Sources */ = {isa = PBXBuildFile; fileRef = 698BF5BC84D2F513DB627F9B /* TranslationHUD.swift */; };
 		E41A69FC772E36B4C649355F /* OpenAIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1947E89D3BFE787968D9FC34 /* OpenAIClient.swift */; };
+		F24BA5FC3E7DBEC8AD68CDBF /* Sparkle in Frameworks */ = {isa = PBXBuildFile; productRef = D711240CC93EBE3D493CD031 /* Sparkle */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -37,6 +38,17 @@
 		F3A8F9ECC037BADBF0A44BA0 /* StatusBarController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatusBarController.swift; sourceTree = "<group>"; };
 		FB3319C9F4B1BEDB74E4A6C3 /* PopoverView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PopoverView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		BAEB362F0A70824AFABBE920 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				F24BA5FC3E7DBEC8AD68CDBF /* Sparkle in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
 		4EDA5329C1C55D683A099473 /* Products */ = {
@@ -84,6 +96,7 @@
 			buildPhases = (
 				13684C9F710A5E9BF73B0F40 /* Sources */,
 				759857A51622E45897C1E47A /* Resources */,
+				BAEB362F0A70824AFABBE920 /* Frameworks */,
 			);
 			buildRules = (
 			);
@@ -91,6 +104,7 @@
 			);
 			name = TransLite;
 			packageProductDependencies = (
+				D711240CC93EBE3D493CD031 /* Sparkle */,
 			);
 			productName = TransLite;
 			productReference = 143B7304DD0E22CE72975F94 /* TransLite.app */;
@@ -120,6 +134,10 @@
 			);
 			mainGroup = 61151DF97EB9814E6D3A1A48;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				959ED98DC9AB57DB10E7C9D6 /* XCRemoteSwiftPackageReference "Sparkle" */,
+			);
+			preferredProjectObjectVersion = 77;
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
@@ -165,18 +183,8 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				AUTOMATION_APPLE_EVENTS = NO;
 				CODE_SIGN_ENTITLEMENTS = TransLite/TransLite.entitlements;
-				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Developer ID Application";
 				COMBINE_HIDPI_IMAGES = YES;
-				"DEVELOPMENT_TEAM[sdk=macosx*]" = 2DBHSD6G6F;
-				ENABLE_HARDENED_RUNTIME = YES;
-				ENABLE_RESOURCE_ACCESS_AUDIO_INPUT = NO;
-				ENABLE_RESOURCE_ACCESS_CALENDARS = NO;
-				ENABLE_RESOURCE_ACCESS_CAMERA = NO;
-				ENABLE_RESOURCE_ACCESS_CONTACTS = NO;
-				ENABLE_RESOURCE_ACCESS_LOCATION = NO;
-				ENABLE_RESOURCE_ACCESS_PHOTO_LIBRARY = NO;
 				INFOPLIST_FILE = TransLite/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -184,12 +192,6 @@
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.translite.app;
 				PRODUCT_NAME = TransLite;
-				RUNTIME_EXCEPTION_ALLOW_DYLD_ENVIRONMENT_VARIABLES = NO;
-				RUNTIME_EXCEPTION_ALLOW_JIT = NO;
-				RUNTIME_EXCEPTION_ALLOW_UNSIGNED_EXECUTABLE_MEMORY = NO;
-				RUNTIME_EXCEPTION_DEBUGGING_TOOL = NO;
-				RUNTIME_EXCEPTION_DISABLE_EXECUTABLE_PAGE_PROTECTION = NO;
-				RUNTIME_EXCEPTION_DISABLE_LIBRARY_VALIDATION = NO;
 				SDKROOT = macosx;
 			};
 			name = Release;
@@ -198,18 +200,8 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				AUTOMATION_APPLE_EVENTS = NO;
 				CODE_SIGN_ENTITLEMENTS = TransLite/TransLite.entitlements;
-				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Developer ID Application";
 				COMBINE_HIDPI_IMAGES = YES;
-				"DEVELOPMENT_TEAM[sdk=macosx*]" = 2DBHSD6G6F;
-				ENABLE_HARDENED_RUNTIME = YES;
-				ENABLE_RESOURCE_ACCESS_AUDIO_INPUT = NO;
-				ENABLE_RESOURCE_ACCESS_CALENDARS = NO;
-				ENABLE_RESOURCE_ACCESS_CAMERA = NO;
-				ENABLE_RESOURCE_ACCESS_CONTACTS = NO;
-				ENABLE_RESOURCE_ACCESS_LOCATION = NO;
-				ENABLE_RESOURCE_ACCESS_PHOTO_LIBRARY = NO;
 				INFOPLIST_FILE = TransLite/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -217,12 +209,6 @@
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.translite.app;
 				PRODUCT_NAME = TransLite;
-				RUNTIME_EXCEPTION_ALLOW_DYLD_ENVIRONMENT_VARIABLES = NO;
-				RUNTIME_EXCEPTION_ALLOW_JIT = NO;
-				RUNTIME_EXCEPTION_ALLOW_UNSIGNED_EXECUTABLE_MEMORY = NO;
-				RUNTIME_EXCEPTION_DEBUGGING_TOOL = NO;
-				RUNTIME_EXCEPTION_DISABLE_EXECUTABLE_PAGE_PROTECTION = NO;
-				RUNTIME_EXCEPTION_DISABLE_LIBRARY_VALIDATION = NO;
 				SDKROOT = macosx;
 			};
 			name = Debug;
@@ -378,6 +364,25 @@
 			defaultConfigurationName = Debug;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		959ED98DC9AB57DB10E7C9D6 /* XCRemoteSwiftPackageReference "Sparkle" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/sparkle-project/Sparkle";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 2.5.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		D711240CC93EBE3D493CD031 /* Sparkle */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 959ED98DC9AB57DB10E7C9D6 /* XCRemoteSwiftPackageReference "Sparkle" */;
+			productName = Sparkle;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 10839F575C07EFFA616078AC /* Project object */;
 }

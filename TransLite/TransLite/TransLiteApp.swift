@@ -1,4 +1,5 @@
 import SwiftUI
+import Sparkle
 
 @main
 struct TransLiteApp: App {
@@ -18,7 +19,13 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     var hotkeyManager: HotkeyManager?
     var viewModel: AppViewModel?
 
+    // Sparkle updater controller
+    var updaterController: SPUStandardUpdaterController!
+
     func applicationDidFinishLaunching(_ notification: Notification) {
+        // Initialize Sparkle updater
+        updaterController = SPUStandardUpdaterController(startingUpdater: true, updaterDelegate: nil, userDriverDelegate: nil)
+
         // Initialize the view model
         viewModel = AppViewModel()
 

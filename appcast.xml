@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="utf-8"?>
+<rss version="2.0" xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle" xmlns:dc="http://purl.org/dc/elements/1.1/">
+    <channel>
+        <title>TransLite Updates</title>
+        <link>https://raw.githubusercontent.com/davizgarzia/TransLite/main/appcast.xml</link>
+        <description>Updates for TransLite</description>
+        <language>en</language>
+
+        <!-- Versión actual: 1.0.0 -->
+        <item>
+            <title>Version 1.0.0</title>
+            <pubDate>Fri, 06 Feb 2026 17:25:51 +0100</pubDate>
+            <sparkle:version>1</sparkle:version>
+            <sparkle:shortVersionString>1.0</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>13.0</sparkle:minimumSystemVersion>
+            <description><![CDATA[
+                <h2>TransLite 1.0</h2>
+                <ul>
+                    <li>Primera versión</li>
+                </ul>
+            ]]></description>
+            <enclosure
+                url="https://github.com/davizgarzia/TransLite/releases/download/v1.0.0/TransLite-1.0.0.zip"
+                sparkle:edSignature="uSFbEx8ZIAxiRYtHFRzzgoKn2V45+qyhW6dPzV84SJjMpTOjqMaLmzcwjNfu4J8vG6/jOvlKhMm8LfQR/Se9BQ=="
+                length="2178525"
+                type="application/octet-stream" />
+        </item>
+
+        <!--
+        INSTRUCCIONES PARA AÑADIR UNA NUEVA VERSIÓN:
+
+        1. Compila la nueva versión (ej: 1.1)
+        2. Crea un ZIP: zip -r TransLite-1.1.0.zip TransLite.app
+        3. Firma el ZIP:
+           /Users/david/Library/Developer/Xcode/DerivedData/TransLite-exwxtunwcbecxxgfikwxkwqqncwu/SourcePackages/artifacts/sparkle/Sparkle/bin/sign_update TransLite-1.1.0.zip
+        4. Copia la firma que te da (sparkle:edSignature="...")
+        5. Sube el ZIP a GitHub Releases como v1.1.0
+        6. Añade un nuevo <item> aquí arriba con la info
+        7. Commit y push del appcast.xml
+
+        Ejemplo de nuevo item:
+
+        <item>
+            <title>Version 1.1.0</title>
+            <pubDate>Fri, 07 Feb 2025 12:00:00 +0000</pubDate>
+            <sparkle:version>2</sparkle:version>
+            <sparkle:shortVersionString>1.1</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>13.0</sparkle:minimumSystemVersion>
+            <description><![CDATA[
+                <h2>TransLite 1.1</h2>
+                <ul>
+                    <li>Nueva funcionalidad X</li>
+                    <li>Corrección de bug Y</li>
+                </ul>
+            ]]></description>
+            <enclosure
+                url="https://github.com/davizgarzia/TransLite/releases/download/v1.1.0/TransLite-1.1.0.zip"
+                sparkle:edSignature="TU_FIRMA_AQUI"
+                length="TAMAÑO_EN_BYTES"
+                type="application/octet-stream" />
+        </item>
+        -->
+
+    </channel>
+</rss>

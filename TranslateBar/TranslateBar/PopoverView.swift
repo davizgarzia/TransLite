@@ -582,7 +582,7 @@ struct PopoverView: View {
                     Image(systemName: "arrow.right")
                         .font(.system(size: 8))
                         .foregroundColor(.secondary)
-                    Text("Done ✨")
+                    Text("Translated!")
                         .font(.system(size: 10, weight: .medium))
                         .foregroundColor(.accentColor)
                 }

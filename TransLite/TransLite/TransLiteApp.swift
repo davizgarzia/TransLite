@@ -1,7 +1,7 @@
 import SwiftUI
 
 @main
-struct TranslateBarApp: App {
+struct TransLiteApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
 
     var body: some Scene {

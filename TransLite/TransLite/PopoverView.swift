@@ -894,7 +894,7 @@ private struct MoreOptionsMenu: View {
     
     private func toggleLaunchAtLogin(_ enabled: Bool) {
         // SMLoginItemSetEnabled implementation
-        let identifier = "com.translite.TranslateBarLaunchHelper" as CFString
+        let identifier = "com.translite.TransLiteLaunchHelper" as CFString
         if #available(macOS 13.0, *) {
             if enabled {
                 try? SMAppService.mainApp.register()

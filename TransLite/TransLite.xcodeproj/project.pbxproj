@@ -7,42 +7,42 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		20AD69D14E35ABCF73EF311C /* ClipboardManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 011CFDE8F8D1032CB49C6C1E /* ClipboardManager.swift */; };
-		23447D0CF8F17603402F0E8F /* TranslateBarApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = ED7FD89F9E8D0DB44FD51BA8 /* TranslateBarApp.swift */; };
-		4B7E8D66E79BF6DE272353D4 /* AccessibilityHelper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 690DB4D3D4CEDF79A23E3DD9 /* AccessibilityHelper.swift */; };
-		56FEE6015DEA523A0EA35698 /* PopoverView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A78C35E6057374C4B6CEFA03 /* PopoverView.swift */; };
-		584B0EDE9273A3F8174718CA /* OpenAIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3358585B02C4691E54D8EFC0 /* OpenAIClient.swift */; };
-		6231D24FA7ECA9D79E8BA0EC /* TrialManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8589F9494B53DCF5EFFC4AEB /* TrialManager.swift */; };
-		73E7035C626E2AF1E31A616A /* AppViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 04DD7210A1400D923A20B57E /* AppViewModel.swift */; };
-		74B2F9AFD5B301E70178F644 /* StatusBarController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9C6459FFEE26B59D5EF26ECF /* StatusBarController.swift */; };
-		8E2221C3F986A03A8C427877 /* TranslationHUD.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18AC814B02B2AAC4CD237A79 /* TranslationHUD.swift */; };
-		9336082C40B96B6BC4B82CBC /* KeychainHelper.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC643C30198744DD235DE188 /* KeychainHelper.swift */; };
-		CB233A9164FE7E1F47EDF2DA /* HotkeyManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8D9902FCABBCA588EBFD0441 /* HotkeyManager.swift */; };
-		F3B44C9DA90D4B504E4C0D13 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 04A6059AF5A027AC795B64AF /* Assets.xcassets */; };
+		01A901A9DEBB792D2A99BEF2 /* TrialManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 641CF2B9F329A65B94B12F3A /* TrialManager.swift */; };
+		67684E97EEB14329EBE1A66C /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = F065CDAC68EA11F7F81610D6 /* Assets.xcassets */; };
+		685A70C77B398AB29C722F28 /* ClipboardManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0E95E1FE6A57EDBAE31A58B6 /* ClipboardManager.swift */; };
+		6919A9E077CF6107BCC1BC59 /* StatusBarController.swift in Sources */ = {isa = PBXBuildFile; fileRef = F3A8F9ECC037BADBF0A44BA0 /* StatusBarController.swift */; };
+		741A1E8C2505588490D613C3 /* TransLiteApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = ED235D1AA9FE1C28B5045986 /* TransLiteApp.swift */; };
+		7D74A29F5C7C0B402CEE0025 /* AccessibilityHelper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 655BE5BB331565D53D416D59 /* AccessibilityHelper.swift */; };
+		87E5AFF4EC9019E3CFEC93BF /* HotkeyManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8BCB409429044306B3730208 /* HotkeyManager.swift */; };
+		952426E2D287C5C81293AF43 /* KeychainHelper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FF7B7F95D903673CDA4FC39 /* KeychainHelper.swift */; };
+		9B1DF2B7127116927B1C3B32 /* AppViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B92F0EF15DCBA2CBB7F73F4 /* AppViewModel.swift */; };
+		CA79F396CD4C60F704137DE0 /* PopoverView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB3319C9F4B1BEDB74E4A6C3 /* PopoverView.swift */; };
+		CDBE5A749B2D4D106B1C5FA1 /* TranslationHUD.swift in Sources */ = {isa = PBXBuildFile; fileRef = 698BF5BC84D2F513DB627F9B /* TranslationHUD.swift */; };
+		E41A69FC772E36B4C649355F /* OpenAIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1947E89D3BFE787968D9FC34 /* OpenAIClient.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
-		011CFDE8F8D1032CB49C6C1E /* ClipboardManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardManager.swift; sourceTree = "<group>"; };
-		04A6059AF5A027AC795B64AF /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
-		04DD7210A1400D923A20B57E /* AppViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppViewModel.swift; sourceTree = "<group>"; };
-		18AC814B02B2AAC4CD237A79 /* TranslationHUD.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TranslationHUD.swift; sourceTree = "<group>"; };
-		3358585B02C4691E54D8EFC0 /* OpenAIClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OpenAIClient.swift; sourceTree = "<group>"; };
-		690DB4D3D4CEDF79A23E3DD9 /* AccessibilityHelper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccessibilityHelper.swift; sourceTree = "<group>"; };
-		8589F9494B53DCF5EFFC4AEB /* TrialManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrialManager.swift; sourceTree = "<group>"; };
-		8D9902FCABBCA588EBFD0441 /* HotkeyManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HotkeyManager.swift; sourceTree = "<group>"; };
-		9C6459FFEE26B59D5EF26ECF /* StatusBarController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatusBarController.swift; sourceTree = "<group>"; };
-		A01DFB61F57FB8EC0E6C4249 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
-		A78C35E6057374C4B6CEFA03 /* PopoverView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PopoverView.swift; sourceTree = "<group>"; };
-		AC643C30198744DD235DE188 /* KeychainHelper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainHelper.swift; sourceTree = "<group>"; };
-		ED7FD89F9E8D0DB44FD51BA8 /* TranslateBarApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TranslateBarApp.swift; sourceTree = "<group>"; };
-		EF5B3388F3E78837FC9DC3DA /* TranslateBar.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = TranslateBar.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		0063E17B45B6552622452D6B /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		0E95E1FE6A57EDBAE31A58B6 /* ClipboardManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardManager.swift; sourceTree = "<group>"; };
+		143B7304DD0E22CE72975F94 /* TransLite.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = TransLite.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		1947E89D3BFE787968D9FC34 /* OpenAIClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OpenAIClient.swift; sourceTree = "<group>"; };
+		641CF2B9F329A65B94B12F3A /* TrialManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrialManager.swift; sourceTree = "<group>"; };
+		655BE5BB331565D53D416D59 /* AccessibilityHelper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccessibilityHelper.swift; sourceTree = "<group>"; };
+		698BF5BC84D2F513DB627F9B /* TranslationHUD.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TranslationHUD.swift; sourceTree = "<group>"; };
+		7B92F0EF15DCBA2CBB7F73F4 /* AppViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppViewModel.swift; sourceTree = "<group>"; };
+		8BCB409429044306B3730208 /* HotkeyManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HotkeyManager.swift; sourceTree = "<group>"; };
+		9FF7B7F95D903673CDA4FC39 /* KeychainHelper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainHelper.swift; sourceTree = "<group>"; };
+		ED235D1AA9FE1C28B5045986 /* TransLiteApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransLiteApp.swift; sourceTree = "<group>"; };
+		F065CDAC68EA11F7F81610D6 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		F3A8F9ECC037BADBF0A44BA0 /* StatusBarController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatusBarController.swift; sourceTree = "<group>"; };
+		FB3319C9F4B1BEDB74E4A6C3 /* PopoverView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PopoverView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXGroup section */
 		4EDA5329C1C55D683A099473 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				EF5B3388F3E78837FC9DC3DA /* TranslateBar.app */,
+				143B7304DD0E22CE72975F94 /* TransLite.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -50,50 +50,50 @@
 		61151DF97EB9814E6D3A1A48 = {
 			isa = PBXGroup;
 			children = (
-				93004A7B3866AA69FCB5C719 /* TranslateBar */,
+				8627F2A5DC5CAF977262B42E /* TransLite */,
 				4EDA5329C1C55D683A099473 /* Products */,
 			);
 			sourceTree = "<group>";
 		};
-		93004A7B3866AA69FCB5C719 /* TranslateBar */ = {
+		8627F2A5DC5CAF977262B42E /* TransLite */ = {
 			isa = PBXGroup;
 			children = (
-				690DB4D3D4CEDF79A23E3DD9 /* AccessibilityHelper.swift */,
-				04DD7210A1400D923A20B57E /* AppViewModel.swift */,
-				04A6059AF5A027AC795B64AF /* Assets.xcassets */,
-				011CFDE8F8D1032CB49C6C1E /* ClipboardManager.swift */,
-				8D9902FCABBCA588EBFD0441 /* HotkeyManager.swift */,
-				A01DFB61F57FB8EC0E6C4249 /* Info.plist */,
-				AC643C30198744DD235DE188 /* KeychainHelper.swift */,
-				3358585B02C4691E54D8EFC0 /* OpenAIClient.swift */,
-				A78C35E6057374C4B6CEFA03 /* PopoverView.swift */,
-				9C6459FFEE26B59D5EF26ECF /* StatusBarController.swift */,
-				ED7FD89F9E8D0DB44FD51BA8 /* TranslateBarApp.swift */,
-				18AC814B02B2AAC4CD237A79 /* TranslationHUD.swift */,
-				8589F9494B53DCF5EFFC4AEB /* TrialManager.swift */,
+				655BE5BB331565D53D416D59 /* AccessibilityHelper.swift */,
+				7B92F0EF15DCBA2CBB7F73F4 /* AppViewModel.swift */,
+				F065CDAC68EA11F7F81610D6 /* Assets.xcassets */,
+				0E95E1FE6A57EDBAE31A58B6 /* ClipboardManager.swift */,
+				8BCB409429044306B3730208 /* HotkeyManager.swift */,
+				0063E17B45B6552622452D6B /* Info.plist */,
+				9FF7B7F95D903673CDA4FC39 /* KeychainHelper.swift */,
+				1947E89D3BFE787968D9FC34 /* OpenAIClient.swift */,
+				FB3319C9F4B1BEDB74E4A6C3 /* PopoverView.swift */,
+				F3A8F9ECC037BADBF0A44BA0 /* StatusBarController.swift */,
+				698BF5BC84D2F513DB627F9B /* TranslationHUD.swift */,
+				ED235D1AA9FE1C28B5045986 /* TransLiteApp.swift */,
+				641CF2B9F329A65B94B12F3A /* TrialManager.swift */,
 			);
-			path = TranslateBar;
+			path = TransLite;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		2EB62211BA94CC6825467158 /* TranslateBar */ = {
+		D23825B110D85AA44871C60A /* TransLite */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 9CC540BDACD143F297A6D36C /* Build configuration list for PBXNativeTarget "TranslateBar" */;
+			buildConfigurationList = 86CF83EA705855CC0FD54F96 /* Build configuration list for PBXNativeTarget "TransLite" */;
 			buildPhases = (
-				1DC923AF5541CBAB7B357066 /* Sources */,
-				F831300BBD9EAAE1C46082BE /* Resources */,
+				13684C9F710A5E9BF73B0F40 /* Sources */,
+				759857A51622E45897C1E47A /* Resources */,
 			);
 			buildRules = (
 			);
 			dependencies = (
 			);
-			name = TranslateBar;
+			name = TransLite;
 			packageProductDependencies = (
 			);
-			productName = TranslateBar;
-			productReference = EF5B3388F3E78837FC9DC3DA /* TranslateBar.app */;
+			productName = TransLite;
+			productReference = 143B7304DD0E22CE72975F94 /* TransLite.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
@@ -105,7 +105,7 @@
 				BuildIndependentTargetsInParallel = YES;
 				LastUpgradeCheck = 1500;
 				TargetAttributes = {
-					2EB62211BA94CC6825467158 = {
+					D23825B110D85AA44871C60A = {
 						ProvisioningStyle = Manual;
 					};
 				};
@@ -124,51 +124,51 @@
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				2EB62211BA94CC6825467158 /* TranslateBar */,
+				D23825B110D85AA44871C60A /* TransLite */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
-		F831300BBD9EAAE1C46082BE /* Resources */ = {
+		759857A51622E45897C1E47A /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				F3B44C9DA90D4B504E4C0D13 /* Assets.xcassets in Resources */,
+				67684E97EEB14329EBE1A66C /* Assets.xcassets in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
-		1DC923AF5541CBAB7B357066 /* Sources */ = {
+		13684C9F710A5E9BF73B0F40 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				4B7E8D66E79BF6DE272353D4 /* AccessibilityHelper.swift in Sources */,
-				73E7035C626E2AF1E31A616A /* AppViewModel.swift in Sources */,
-				20AD69D14E35ABCF73EF311C /* ClipboardManager.swift in Sources */,
-				CB233A9164FE7E1F47EDF2DA /* HotkeyManager.swift in Sources */,
-				9336082C40B96B6BC4B82CBC /* KeychainHelper.swift in Sources */,
-				584B0EDE9273A3F8174718CA /* OpenAIClient.swift in Sources */,
-				56FEE6015DEA523A0EA35698 /* PopoverView.swift in Sources */,
-				74B2F9AFD5B301E70178F644 /* StatusBarController.swift in Sources */,
-				23447D0CF8F17603402F0E8F /* TranslateBarApp.swift in Sources */,
-				8E2221C3F986A03A8C427877 /* TranslationHUD.swift in Sources */,
-				6231D24FA7ECA9D79E8BA0EC /* TrialManager.swift in Sources */,
+				7D74A29F5C7C0B402CEE0025 /* AccessibilityHelper.swift in Sources */,
+				9B1DF2B7127116927B1C3B32 /* AppViewModel.swift in Sources */,
+				685A70C77B398AB29C722F28 /* ClipboardManager.swift in Sources */,
+				87E5AFF4EC9019E3CFEC93BF /* HotkeyManager.swift in Sources */,
+				952426E2D287C5C81293AF43 /* KeychainHelper.swift in Sources */,
+				E41A69FC772E36B4C649355F /* OpenAIClient.swift in Sources */,
+				CA79F396CD4C60F704137DE0 /* PopoverView.swift in Sources */,
+				6919A9E077CF6107BCC1BC59 /* StatusBarController.swift in Sources */,
+				741A1E8C2505588490D613C3 /* TransLiteApp.swift in Sources */,
+				CDBE5A749B2D4D106B1C5FA1 /* TranslationHUD.swift in Sources */,
+				01A901A9DEBB792D2A99BEF2 /* TrialManager.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin XCBuildConfiguration section */
-		93B722D47A6DCC80046A3AD4 /* Release */ = {
+		20DAC9844FB3B61D77745BB2 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				CODE_SIGN_ENTITLEMENTS = TranslateBar/TranslateBar.entitlements;
+				CODE_SIGN_ENTITLEMENTS = TransLite/TransLite.entitlements;
 				COMBINE_HIDPI_IMAGES = YES;
-				INFOPLIST_FILE = TranslateBar/Info.plist;
+				INFOPLIST_FILE = TransLite/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
@@ -178,6 +178,23 @@
 				SDKROOT = macosx;
 			};
 			name = Release;
+		};
+		82EEC0C8CF00B76CF068392E /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = TransLite/TransLite.entitlements;
+				COMBINE_HIDPI_IMAGES = YES;
+				INFOPLIST_FILE = TransLite/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.translite.app;
+				PRODUCT_NAME = TransLite;
+				SDKROOT = macosx;
+			};
+			name = Debug;
 		};
 		D04AA8F5597A910E33259922 /* Release */ = {
 			isa = XCBuildConfiguration;
@@ -308,31 +325,14 @@
 			};
 			name = Debug;
 		};
-		D7650901BCCCC8ABF5098CCA /* Debug */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				CODE_SIGN_ENTITLEMENTS = TranslateBar/TranslateBar.entitlements;
-				COMBINE_HIDPI_IMAGES = YES;
-				INFOPLIST_FILE = TranslateBar/Info.plist;
-				LD_RUNPATH_SEARCH_PATHS = (
-					"$(inherited)",
-					"@executable_path/../Frameworks",
-				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.translite.app;
-				PRODUCT_NAME = TransLite;
-				SDKROOT = macosx;
-			};
-			name = Debug;
-		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		9CC540BDACD143F297A6D36C /* Build configuration list for PBXNativeTarget "TranslateBar" */ = {
+		86CF83EA705855CC0FD54F96 /* Build configuration list for PBXNativeTarget "TransLite" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				D7650901BCCCC8ABF5098CCA /* Debug */,
-				93B722D47A6DCC80046A3AD4 /* Release */,
+				82EEC0C8CF00B76CF068392E /* Debug */,
+				20DAC9844FB3B61D77745BB2 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Debug;

@@ -242,16 +242,28 @@ final class AppViewModel: ObservableObject {
             return
         }
 
-        guard let text = clipboard.readText() else {
-            statusMessage = "Clipboard empty"
-            return
+        isTranslating = true
+        hud.show(message: "Copying...")
+
+        // Auto-copy selected text if we have accessibility permission
+        if accessibility.hasAccessibilityPermission {
+            accessibility.simulateCopy()
         }
 
-        isTranslating = true
-        statusMessage = "Translating..."
-        hud.show(message: "Translating...")
-
         Task {
+            // Delay to allow clipboard to update after copy
+            try? await Task.sleep(nanoseconds: 150_000_000) // 150ms
+
+            guard let text = clipboard.readText() else {
+                statusMessage = "No text selected"
+                hud.hide()
+                isTranslating = false
+                return
+            }
+
+            statusMessage = "Translating..."
+            hud.update(message: "Translating...")
+
             do {
                 let translated = try await openAI.translate(
                     text: text,

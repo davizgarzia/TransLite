@@ -103,16 +103,6 @@ struct PopoverView: View {
             Spacer()
 
             HStack(spacing: 3) {
-                Text("⌘C")
-                    .font(.system(size: 9, weight: .medium))
-                    .foregroundColor(.secondary)
-                    .padding(.horizontal, 4)
-                    .padding(.vertical, 2)
-                    .background(Color(NSColor.controlBackgroundColor))
-                    .cornerRadius(3)
-                Text("+")
-                    .font(.system(size: 9))
-                    .foregroundColor(.secondary.opacity(0.5))
                 Text("⌘⇧T")
                     .font(.system(size: 9, weight: .medium))
                     .foregroundColor(.secondary)
@@ -574,18 +564,45 @@ struct PopoverView: View {
                     .font(.system(size: 10, weight: .medium))
                     .foregroundColor(.secondary)
 
-                HStack(spacing: 6) {
-                    shortcutBadge("⌘C")
+                HStack(spacing: 8) {
+                    VStack(spacing: 4) {
+                        Image(systemName: "text.cursor")
+                            .font(.system(size: 16))
+                            .foregroundColor(.secondary)
+                        Text("Select text")
+                            .font(.system(size: 9))
+                            .foregroundColor(.secondary)
+                    }
+
                     Image(systemName: "arrow.right")
-                        .font(.system(size: 8))
-                        .foregroundColor(.secondary)
-                    shortcutBadge("⌘⇧T")
+                        .font(.system(size: 10))
+                        .foregroundColor(.secondary.opacity(0.5))
+
+                    VStack(spacing: 4) {
+                        Text("⌘⇧T")
+                            .font(.system(size: 12, weight: .semibold))
+                            .foregroundColor(.primary)
+                        Text("Shortcut")
+                            .font(.system(size: 9))
+                            .foregroundColor(.secondary)
+                    }
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 8)
+                    .background(Color(NSColor.controlBackgroundColor))
+                    .cornerRadius(8)
+
                     Image(systemName: "arrow.right")
-                        .font(.system(size: 8))
-                        .foregroundColor(.secondary)
-                    Text("Translated!")
-                        .font(.system(size: 10, weight: .medium))
-                        .foregroundColor(.accentColor)
+                        .font(.system(size: 10))
+                        .foregroundColor(.secondary.opacity(0.5))
+
+                    VStack(spacing: 4) {
+                        Image(systemName: "checkmark.circle.fill")
+                            .font(.system(size: 16))
+                            .foregroundColor(.accentColor)
+                        Text("Translated")
+                            .font(.system(size: 9))
+                            .foregroundColor(.accentColor)
+                    }
                 }
             }
             .padding(.vertical, 12)

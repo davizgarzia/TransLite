@@ -6,7 +6,40 @@
         <description>Updates for TransLite</description>
         <language>en</language>
 
-        <!-- Current version: 1.0.4 -->
+        <!-- Current version: 1.0.5 -->
+        <item>
+            <title>Version 1.0.5</title>
+            <pubDate>Sun, 09 Feb 2026 10:40:00 +0100</pubDate>
+            <sparkle:version>6</sparkle:version>
+            <sparkle:shortVersionString>1.0.5</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>13.0</sparkle:minimumSystemVersion>
+            <description><![CDATA[
+                <h2>TransLite 1.0.5</h2>
+                <h3>What's New</h3>
+                <ul>
+                    <li>🎉 New welcome screen with features and pricing info</li>
+                    <li>🔑 Improved API Key setup flow with clearer information</li>
+                    <li>🌐 Updated icon from globe.americas to simple globe</li>
+                    <li>⚡ Animated spinner during translations</li>
+                    <li>📱 Popover now opens automatically on first launch</li>
+                    <li>🎨 General UI and UX improvements</li>
+                    <li>🔧 New menu options: Launch at Startup, Follow on X, Visit website</li>
+                    <li>📝 Feedback now links directly to Tally form</li>
+                </ul>
+                <h3>Bug Fixes</h3>
+                <ul>
+                    <li>Fixed OpenAI icon quality (now vectorial)</li>
+                    <li>Improved onboarding experience</li>
+                </ul>
+            ]]></description>
+            <enclosure
+                url="https://github.com/davizgarzia/TransLite/releases/download/v1.0.5/TransLite-1.0.5.dmg"
+                sparkle:edSignature="Q/w2pC/PFBnPWfy0AlQt1rcNUKVIvNfWZx955wPEg6CZqteanekqvpz8CDSXLAn+FbueLgMaOB0xCRvgQ62qDg=="
+                length="1799929"
+                type="application/octet-stream" />
+        </item>
+
+        <!-- Previous version: 1.0.4 -->
         <item>
             <title>Version 1.0.4</title>
             <pubDate>Sat, 07 Feb 2026 16:16:59 +0100</pubDate>

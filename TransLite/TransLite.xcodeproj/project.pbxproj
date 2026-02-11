@@ -19,6 +19,7 @@
 		CA79F396CD4C60F704137DE0 /* PopoverView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FB3319C9F4B1BEDB74E4A6C3 /* PopoverView.swift */; };
 		CDBE5A749B2D4D106B1C5FA1 /* TranslationHUD.swift in Sources */ = {isa = PBXBuildFile; fileRef = 698BF5BC84D2F513DB627F9B /* TranslationHUD.swift */; };
 		E41A69FC772E36B4C649355F /* OpenAIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1947E89D3BFE787968D9FC34 /* OpenAIClient.swift */; };
+		EDBA7EEBE80C46AEDFDA0D40 /* ClaudeClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = FC7AD32AA5A1465E9D7B8DFD /* ClaudeClient.swift */; };
 		F24BA5FC3E7DBEC8AD68CDBF /* Sparkle in Frameworks */ = {isa = PBXBuildFile; productRef = D711240CC93EBE3D493CD031 /* Sparkle */; };
 /* End PBXBuildFile section */
 
@@ -37,6 +38,7 @@
 		F065CDAC68EA11F7F81610D6 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		F3A8F9ECC037BADBF0A44BA0 /* StatusBarController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatusBarController.swift; sourceTree = "<group>"; };
 		FB3319C9F4B1BEDB74E4A6C3 /* PopoverView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PopoverView.swift; sourceTree = "<group>"; };
+		FC7AD32AA5A1465E9D7B8DFD /* ClaudeClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClaudeClient.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -73,6 +75,7 @@
 				655BE5BB331565D53D416D59 /* AccessibilityHelper.swift */,
 				7B92F0EF15DCBA2CBB7F73F4 /* AppViewModel.swift */,
 				F065CDAC68EA11F7F81610D6 /* Assets.xcassets */,
+				FC7AD32AA5A1465E9D7B8DFD /* ClaudeClient.swift */,
 				0E95E1FE6A57EDBAE31A58B6 /* ClipboardManager.swift */,
 				8BCB409429044306B3730208 /* HotkeyManager.swift */,
 				0063E17B45B6552622452D6B /* Info.plist */,
@@ -165,6 +168,7 @@
 			files = (
 				7D74A29F5C7C0B402CEE0025 /* AccessibilityHelper.swift in Sources */,
 				9B1DF2B7127116927B1C3B32 /* AppViewModel.swift in Sources */,
+				EDBA7EEBE80C46AEDFDA0D40 /* ClaudeClient.swift in Sources */,
 				685A70C77B398AB29C722F28 /* ClipboardManager.swift in Sources */,
 				87E5AFF4EC9019E3CFEC93BF /* HotkeyManager.swift in Sources */,
 				952426E2D287C5C81293AF43 /* KeychainHelper.swift in Sources */,

@@ -53,13 +53,39 @@ enum TranslationTone: String, CaseIterable {
     }
 }
 
+enum APIProvider: String, CaseIterable {
+    case openai = "openai"
+    case claude = "claude"
+
+    var displayName: String {
+        switch self {
+        case .openai: return "OpenAI"
+        case .claude: return "Claude"
+        }
+    }
+
+    var icon: String {
+        switch self {
+        case .openai: return "brain"
+        case .claude: return "ClaudeIcon"
+        }
+    }
+}
+
 /// Main view model managing app state and translation logic
 @MainActor
 final class AppViewModel: ObservableObject {
     // MARK: - Published Properties
 
     @Published var apiKeyInput: String = ""
+    @Published var claudeApiKeyInput: String = ""
     @Published var hasAPIKey: Bool = false
+    @Published var hasClaudeAPIKey: Bool = false
+    @Published var apiProvider: APIProvider {
+        didSet {
+            UserDefaults.standard.set(apiProvider.rawValue, forKey: "apiProvider")
+        }
+    }
     @Published var autoPasteEnabled: Bool {
         didSet {
             UserDefaults.standard.set(autoPasteEnabled, forKey: "autoPasteEnabled")
@@ -99,6 +125,7 @@ final class AppViewModel: ObservableObject {
     private let keychain = KeychainHelper.shared
     private let clipboard = ClipboardManager.shared
     private let openAI = OpenAIClient.shared
+    private let claude = ClaudeClient.shared
     private let accessibility = AccessibilityHelper.shared
     private let hud = TranslationHUD.shared
     private var permissionPollingTimer: Timer?
@@ -128,6 +155,14 @@ final class AppViewModel: ObservableObject {
             self.translationTone = .original
         }
 
+        // Load API provider
+        if let savedProvider = UserDefaults.standard.string(forKey: "apiProvider"),
+           let provider = APIProvider(rawValue: savedProvider) {
+            self.apiProvider = provider
+        } else {
+            self.apiProvider = .openai
+        }
+
         // Check accessibility permission
         self.hasAccessibilityPermission = accessibility.hasAccessibilityPermission
 
@@ -143,14 +178,19 @@ final class AppViewModel: ObservableObject {
         if !hasSeenWelcome {
             self.onboardingStep = .welcome
             self.hasAPIKey = false // Don't check keychain yet
+            self.hasClaudeAPIKey = false
         } else if onboardingComplete {
             // Only access keychain if onboarding is complete
             self.hasAPIKey = keychain.hasAPIKey
-            self.onboardingStep = hasAPIKey ? .complete : .apiKey
+            self.hasClaudeAPIKey = keychain.hasClaudeAPIKey
+            let hasAnyKey = hasAPIKey || hasClaudeAPIKey
+            self.onboardingStep = hasAnyKey ? .complete : .apiKey
         } else {
             // Onboarding in progress - check keychain to determine step
             self.hasAPIKey = keychain.hasAPIKey
-            if !hasAPIKey {
+            self.hasClaudeAPIKey = keychain.hasClaudeAPIKey
+            let hasAnyKey = hasAPIKey || hasClaudeAPIKey
+            if !hasAnyKey {
                 self.onboardingStep = .apiKey
             } else {
                 self.onboardingStep = .permissions
@@ -180,6 +220,33 @@ final class AppViewModel: ObservableObject {
 
             // Go to permissions step
             onboardingStep = .permissions
+        } else {
+            statusMessage = "Failed to save API key"
+        }
+    }
+
+    func saveClaudeAPIKey() {
+        let trimmedKey = claudeApiKeyInput.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        guard !trimmedKey.isEmpty else {
+            statusMessage = "API key cannot be empty"
+            return
+        }
+
+        guard trimmedKey.hasPrefix("sk-ant-") else {
+            statusMessage = "Invalid Claude API key format"
+            return
+        }
+
+        if keychain.saveClaudeAPIKey(trimmedKey) {
+            hasClaudeAPIKey = true
+            claudeApiKeyInput = ""
+            statusMessage = ""
+
+            // Go to permissions step if this is the first key
+            if onboardingStep == .apiKey {
+                onboardingStep = .permissions
+            }
         } else {
             statusMessage = "Failed to save API key"
         }
@@ -216,11 +283,35 @@ final class AppViewModel: ObservableObject {
     func deleteAPIKey() {
         keychain.deleteAPIKey()
         hasAPIKey = false
-        statusMessage = "API key removed"
+        statusMessage = "OpenAI API key removed"
 
-        // Reset onboarding
-        UserDefaults.standard.set(false, forKey: "onboardingComplete")
-        onboardingStep = .apiKey
+        if hasClaudeAPIKey {
+            // Switch to Claude if it was the active provider
+            if apiProvider == .openai {
+                apiProvider = .claude
+            }
+        } else {
+            // No keys left - reset onboarding
+            UserDefaults.standard.set(false, forKey: "onboardingComplete")
+            onboardingStep = .apiKey
+        }
+    }
+
+    func deleteClaudeAPIKey() {
+        keychain.deleteClaudeAPIKey()
+        hasClaudeAPIKey = false
+        statusMessage = "Claude API key removed"
+
+        if hasAPIKey {
+            // Switch to OpenAI if it was the active provider
+            if apiProvider == .claude {
+                apiProvider = .openai
+            }
+        } else {
+            // No keys left - reset onboarding
+            UserDefaults.standard.set(false, forKey: "onboardingComplete")
+            onboardingStep = .apiKey
+        }
     }
 
     // MARK: - Translation
@@ -237,9 +328,21 @@ final class AppViewModel: ObservableObject {
             return
         }
 
-        guard hasAPIKey, let apiKey = keychain.getAPIKey() else {
-            statusMessage = "No API key configured"
-            return
+        // Get API key based on selected provider
+        let apiKey: String
+        switch apiProvider {
+        case .openai:
+            guard hasAPIKey, let key = keychain.getAPIKey() else {
+                statusMessage = "No OpenAI API key configured"
+                return
+            }
+            apiKey = key
+        case .claude:
+            guard hasClaudeAPIKey, let key = keychain.getClaudeAPIKey() else {
+                statusMessage = "No Claude API key configured"
+                return
+            }
+            apiKey = key
         }
 
         isTranslating = true
@@ -265,12 +368,23 @@ final class AppViewModel: ObservableObject {
             hud.update(message: "Translating...")
 
             do {
-                let translated = try await openAI.translate(
-                    text: text,
-                    apiKey: apiKey,
-                    targetLanguage: targetLanguage.rawValue,
-                    tone: translationTone.promptInstruction
-                )
+                let translated: String
+                switch apiProvider {
+                case .openai:
+                    translated = try await openAI.translate(
+                        text: text,
+                        apiKey: apiKey,
+                        targetLanguage: targetLanguage.rawValue,
+                        tone: translationTone.promptInstruction
+                    )
+                case .claude:
+                    translated = try await claude.translate(
+                        text: text,
+                        apiKey: apiKey,
+                        targetLanguage: targetLanguage.rawValue,
+                        tone: translationTone.promptInstruction
+                    )
+                }
 
                 // Write to clipboard
                 if clipboard.writeText(translated) {

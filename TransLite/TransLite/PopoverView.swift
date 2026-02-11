@@ -6,6 +6,10 @@ import Sparkle
 struct PopoverView: View {
     @ObservedObject var viewModel: AppViewModel
     @State private var showingAPIKeyHelp = false
+    @State private var onboardingProvider: APIProvider = .openai
+    @State private var addingKeyFor: APIProvider? = nil
+    @State private var showingApiKeySteps = false
+    @State private var showingApiKeysSection = false
 
     private let cardPadding: CGFloat = 8
     private let cardCornerRadius: CGFloat = 12
@@ -49,16 +53,20 @@ struct PopoverView: View {
                 onboardingPermissionsCard
 
             case .complete:
-                if !isLicensed {
-                    trialSection
-                }
+                if let provider = addingKeyFor {
+                    addApiKeyCard(for: provider)
+                } else {
+                    if !isLicensed {
+                        trialSection
+                    }
 
-                VStack(spacing: contentSpacing) {
-                    translationCard
-                    keysCard
+                    VStack(spacing: contentSpacing) {
+                        translationCard
+                        keysCard
+                    }
+                    .opacity(trialExpired ? 0.5 : 1.0)
+                    .disabled(trialExpired)
                 }
-                .opacity(trialExpired ? 0.5 : 1.0)
-                .disabled(trialExpired)
             }
 
             if !viewModel.statusMessage.isEmpty {
@@ -336,40 +344,335 @@ struct PopoverView: View {
         .buttonStyle(.plain)
     }
 
-    // MARK: - Keys Card (API Key only)
+    // MARK: - Keys Card (Provider selector + API Keys)
 
     private var keysCard: some View {
         VStack(spacing: 0) {
+            // Provider row
             HStack {
-                HStack(spacing: 4) {
-                    Image("OpenAIIcon")
-                        .resizable()
-                        .aspectRatio(contentMode: .fit)
-                        .frame(width: 11, height: 11)
-                    Text("API Key")
-                }
-                .font(.system(size: 11))
-                .foregroundColor(.secondary)
-
-                if viewModel.hasAPIKey {
-                    Image(systemName: "checkmark.circle.fill")
-                        .foregroundColor(.green)
-                        .font(.system(size: 10))
-                }
+                Label("Provider", systemImage: "sparkles")
+                    .font(.system(size: 11))
+                    .foregroundColor(.secondary)
 
                 Spacer()
 
-                if viewModel.hasAPIKey {
-                    Button("Remove") {
-                        viewModel.deleteAPIKey()
+                Picker("", selection: Binding(
+                    get: { viewModel.apiProvider },
+                    set: { newProvider in
+                        let hasKey = newProvider == .openai ? viewModel.hasAPIKey : viewModel.hasClaudeAPIKey
+                        if hasKey {
+                            viewModel.apiProvider = newProvider
+                        } else {
+                            addingKeyFor = newProvider
+                        }
                     }
-                    .font(.system(size: 9, weight: .medium))
-                    .buttonStyle(.bordered)
-                    .controlSize(.small)
+                )) {
+                    ForEach(APIProvider.allCases, id: \.self) { provider in
+                        HStack {
+                            Text(provider.displayName)
+                            if (provider == .openai && !viewModel.hasAPIKey) ||
+                               (provider == .claude && !viewModel.hasClaudeAPIKey) {
+                                Text("(No key)")
+                                    .foregroundColor(.secondary)
+                            }
+                        }
+                        .tag(provider)
+                    }
                 }
+                .labelsHidden()
+                .pickerStyle(.menu)
+                .frame(width: 100)
             }
             .padding(.horizontal, cardPadding)
             .frame(height: 36)
+
+            Divider().padding(.leading, cardPadding)
+
+            // API Keys row (collapsible)
+            Button {
+                withAnimation(.easeInOut(duration: 0.2)) {
+                    showingApiKeysSection.toggle()
+                }
+            } label: {
+                HStack {
+                    Label("API Keys", systemImage: "key")
+                        .font(.system(size: 11))
+                        .foregroundColor(.secondary)
+
+                    Spacer()
+
+                    Image(systemName: showingApiKeysSection ? "chevron.up" : "chevron.down")
+                        .font(.system(size: 9, weight: .medium))
+                        .foregroundColor(.secondary)
+                }
+                .padding(.horizontal, cardPadding)
+                .frame(height: 36)
+            }
+            .buttonStyle(.plain)
+
+            if showingApiKeysSection {
+                Divider().padding(.leading, cardPadding)
+
+                // OpenAI API Key row
+                HStack {
+                    HStack(spacing: 4) {
+                        Image("OpenAIIcon")
+                            .resizable()
+                            .aspectRatio(contentMode: .fit)
+                            .frame(width: 11, height: 11)
+                        Text("OpenAI Key")
+                    }
+                    .font(.system(size: 11))
+                    .foregroundColor(.secondary)
+
+                    if viewModel.hasAPIKey {
+                        Image(systemName: "checkmark.circle.fill")
+                            .foregroundColor(.green)
+                            .font(.system(size: 10))
+                    }
+
+                    Spacer()
+
+                    if viewModel.hasAPIKey {
+                        Button("Remove") {
+                            viewModel.deleteAPIKey()
+                        }
+                        .font(.system(size: 9, weight: .medium))
+                        .buttonStyle(.bordered)
+                        .controlSize(.small)
+                    } else {
+                        Button("Add") {
+                            addingKeyFor = .openai
+                        }
+                        .font(.system(size: 9, weight: .medium))
+                        .buttonStyle(.bordered)
+                        .controlSize(.small)
+                    }
+                }
+                .padding(.horizontal, cardPadding)
+                .frame(height: 36)
+
+                Divider().padding(.leading, cardPadding)
+
+                // Claude API Key row
+                HStack {
+                    HStack(spacing: 4) {
+                        Image("ClaudeIcon")
+                            .resizable()
+                            .aspectRatio(contentMode: .fit)
+                            .frame(width: 11, height: 11)
+                        Text("Claude Key")
+                    }
+                    .font(.system(size: 11))
+                    .foregroundColor(.secondary)
+
+                    if viewModel.hasClaudeAPIKey {
+                        Image(systemName: "checkmark.circle.fill")
+                            .foregroundColor(.green)
+                            .font(.system(size: 10))
+                    }
+
+                    Spacer()
+
+                    if viewModel.hasClaudeAPIKey {
+                        Button("Remove") {
+                            viewModel.deleteClaudeAPIKey()
+                        }
+                        .font(.system(size: 9, weight: .medium))
+                        .buttonStyle(.bordered)
+                        .controlSize(.small)
+                    } else {
+                        Button("Add") {
+                            addingKeyFor = .claude
+                        }
+                        .font(.system(size: 9, weight: .medium))
+                        .buttonStyle(.bordered)
+                        .controlSize(.small)
+                    }
+                }
+                .padding(.horizontal, cardPadding)
+                .frame(height: 36)
+            }
+        }
+        .background(Color(NSColor.controlBackgroundColor).opacity(0.7))
+        .cornerRadius(cardCornerRadius)
+    }
+
+    // MARK: - Add API Key Card (full page)
+
+    private func addApiKeyCard(for provider: APIProvider) -> some View {
+        VStack(spacing: 0) {
+            // Header with provider icon + close button
+            ZStack(alignment: .topTrailing) {
+                VStack(spacing: 6) {
+                    if provider == .openai {
+                        Image("OpenAIIcon")
+                            .resizable()
+                            .aspectRatio(contentMode: .fit)
+                            .frame(width: 28, height: 28)
+                    } else {
+                        Image("ClaudeIcon")
+                            .resizable()
+                            .aspectRatio(contentMode: .fit)
+                            .frame(width: 28, height: 28)
+                    }
+
+                    Text("Add your \(provider.displayName) Key")
+                        .font(.system(size: 13, weight: .semibold))
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 10)
+                .padding(.horizontal, 12)
+
+                Button {
+                    viewModel.apiKeyInput = ""
+                    viewModel.claudeApiKeyInput = ""
+                    showingApiKeySteps = false
+                    addingKeyFor = nil
+                } label: {
+                    Image(systemName: "xmark")
+                        .font(.system(size: 10, weight: .medium))
+                        .foregroundColor(.secondary)
+                        .frame(width: 20, height: 20)
+                        .background(Color(NSColor.controlBackgroundColor))
+                        .clipShape(Circle())
+                }
+                .buttonStyle(.plain)
+                .padding(8)
+            }
+
+            Divider()
+
+            // API key input + Save + Open link + pricing
+            VStack(spacing: 8) {
+                if provider == .openai {
+                    SecureField("sk-...", text: $viewModel.apiKeyInput)
+                        .textFieldStyle(.plain)
+                        .padding(8)
+                        .background(Color(NSColor.textBackgroundColor))
+                        .cornerRadius(6)
+                        .font(.system(size: 12, design: .monospaced))
+
+                    Button {
+                        viewModel.saveAPIKey()
+                        if viewModel.hasAPIKey {
+                            addingKeyFor = nil
+                        }
+                    } label: {
+                        Text("Save API Key")
+                            .font(.system(size: 10, weight: .medium))
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 24)
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .disabled(viewModel.apiKeyInput.isEmpty)
+
+                    Button {
+                        if let url = URL(string: "https://platform.openai.com/api-keys") {
+                            NSWorkspace.shared.open(url)
+                        }
+                    } label: {
+                        HStack(spacing: 4) {
+                            Image(systemName: "arrow.up.right.square")
+                            Text("Open OpenAI")
+                        }
+                        .font(.system(size: 10, weight: .medium))
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 24)
+                    }
+                    .buttonStyle(.bordered)
+
+                    Text("OpenAI charges only for usage. This app uses gpt-4o-mini. With normal use, $5 = 15,000+ translations.")
+                        .font(.system(size: 9))
+                        .foregroundColor(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                } else {
+                    SecureField("sk-ant-...", text: $viewModel.claudeApiKeyInput)
+                        .textFieldStyle(.plain)
+                        .padding(8)
+                        .background(Color(NSColor.textBackgroundColor))
+                        .cornerRadius(6)
+                        .font(.system(size: 12, design: .monospaced))
+
+                    Button {
+                        viewModel.saveClaudeAPIKey()
+                        if viewModel.hasClaudeAPIKey {
+                            addingKeyFor = nil
+                        }
+                    } label: {
+                        Text("Save API Key")
+                            .font(.system(size: 10, weight: .medium))
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 24)
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .disabled(viewModel.claudeApiKeyInput.isEmpty)
+
+                    Button {
+                        if let url = URL(string: "https://console.anthropic.com/settings/keys") {
+                            NSWorkspace.shared.open(url)
+                        }
+                    } label: {
+                        HStack(spacing: 4) {
+                            Image(systemName: "arrow.up.right.square")
+                            Text("Open Anthropic")
+                        }
+                        .font(.system(size: 10, weight: .medium))
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 24)
+                    }
+                    .buttonStyle(.bordered)
+
+                    Text("Anthropic charges only for usage. This app uses claude-sonnet-4. With normal use, $5 = 5,000+ translations.")
+                        .font(.system(size: 9))
+                        .foregroundColor(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+            .padding(cardPadding + 4)
+
+            Divider()
+
+            // Collapsible "How to get an API key"
+            VStack(spacing: 0) {
+                Button {
+                    withAnimation(.easeInOut(duration: 0.2)) {
+                        showingApiKeySteps.toggle()
+                    }
+                } label: {
+                    HStack {
+                        Text("How to get an API key")
+                            .font(.system(size: 10, weight: .medium))
+                            .foregroundColor(.secondary)
+                        Spacer()
+                        Image(systemName: showingApiKeySteps ? "chevron.up" : "chevron.down")
+                            .font(.system(size: 9, weight: .medium))
+                            .foregroundColor(.secondary)
+                    }
+                    .padding(.horizontal, cardPadding + 4)
+                    .frame(height: 32)
+                }
+                .buttonStyle(.plain)
+
+                if showingApiKeySteps {
+                    VStack(alignment: .leading, spacing: 6) {
+                        if provider == .openai {
+                            apiKeyStep(number: 1, text: "Sign in at platform.openai.com")
+                            apiKeyStep(number: 2, text: "Go to API Keys section")
+                            apiKeyStep(number: 3, text: "Create new secret key")
+                            apiKeyStep(number: 4, text: "Copy and paste above")
+                        } else {
+                            apiKeyStep(number: 1, text: "Sign in at console.anthropic.com")
+                            apiKeyStep(number: 2, text: "Go to API Keys section")
+                            apiKeyStep(number: 3, text: "Create new key")
+                            apiKeyStep(number: 4, text: "Copy and paste above")
+                        }
+                    }
+                    .padding(.leading, cardPadding + 4)
+                    .padding(.trailing, cardPadding)
+                    .padding(.bottom, cardPadding)
+                }
+            }
         }
         .background(Color(NSColor.controlBackgroundColor).opacity(0.7))
         .cornerRadius(cardCornerRadius)
@@ -443,94 +746,183 @@ struct PopoverView: View {
 
     // MARK: - Onboarding: API Key
 
+    @State private var showingOnboardingApiKeySteps = false
+
     private var onboardingApiKeyCard: some View {
         VStack(spacing: 0) {
-            // Header with OpenAI logo
-            VStack(spacing: 8) {
-                Image("OpenAIIcon")
-                    .resizable()
-                    .aspectRatio(contentMode: .fit)
-                    .frame(width: 32, height: 32)
-                
-                Text("Add your OpenAI Key")
-                    .font(.system(size: 13, weight: .semibold))
-                
-                HStack(spacing: 4) {
-                    Text("Your API key, your data. We never store or read your content.")
-                        .font(.system(size: 10))
-                        .foregroundColor(.secondary)
-                        .multilineTextAlignment(.center)
-                        .fixedSize(horizontal: false, vertical: true)
+            // Header with provider icon
+            VStack(spacing: 6) {
+                if onboardingProvider == .openai {
+                    Image("OpenAIIcon")
+                        .resizable()
+                        .aspectRatio(contentMode: .fit)
+                        .frame(width: 28, height: 28)
+                } else {
+                    Image("ClaudeIcon")
+                        .resizable()
+                        .aspectRatio(contentMode: .fit)
+                        .frame(width: 28, height: 28)
                 }
+
+                Text("Add your \(onboardingProvider.displayName) Key")
+                    .font(.system(size: 13, weight: .semibold))
+
+                Text("Your API key, your data. We never store or read your content.")
+                    .font(.system(size: 10))
+                    .foregroundColor(.secondary)
+                    .multilineTextAlignment(.center)
+                    .fixedSize(horizontal: false, vertical: true)
             }
             .frame(maxWidth: .infinity)
-            .padding(.vertical, 12)
+            .padding(.vertical, 10)
             .padding(.horizontal, 12)
 
             Divider()
 
-            // API key input
-            VStack(spacing: 8) {
-                SecureField("sk-...", text: $viewModel.apiKeyInput)
-                    .textFieldStyle(.plain)
-                    .padding(8)
-                    .background(Color(NSColor.textBackgroundColor))
-                    .cornerRadius(6)
-                    .font(.system(size: 12, design: .monospaced))
+            // Provider selector
+            HStack {
+                Label("Provider", systemImage: "sparkles")
+                    .font(.system(size: 11))
+                    .foregroundColor(.secondary)
+                Spacer()
+                Picker("", selection: $onboardingProvider) {
+                    ForEach(APIProvider.allCases, id: \.self) { provider in
+                        Text(provider.displayName).tag(provider)
+                    }
+                }
+                .labelsHidden()
+                .pickerStyle(.menu)
+                .frame(width: 100)
+            }
+            .padding(.horizontal, cardPadding + 4)
+            .frame(height: 36)
 
-                Button {
-                    viewModel.saveAPIKey()
-                } label: {
-                    Text("Save API Key")
+            Divider()
+
+            // API key input + Save + Open link + pricing
+            VStack(spacing: 8) {
+                if onboardingProvider == .openai {
+                    SecureField("sk-...", text: $viewModel.apiKeyInput)
+                        .textFieldStyle(.plain)
+                        .padding(8)
+                        .background(Color(NSColor.textBackgroundColor))
+                        .cornerRadius(6)
+                        .font(.system(size: 12, design: .monospaced))
+
+                    Button {
+                        viewModel.saveAPIKey()
+                    } label: {
+                        Text("Save API Key")
+                            .font(.system(size: 10, weight: .medium))
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 24)
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .disabled(viewModel.apiKeyInput.isEmpty)
+
+                    Button {
+                        if let url = URL(string: "https://platform.openai.com/api-keys") {
+                            NSWorkspace.shared.open(url)
+                        }
+                    } label: {
+                        HStack(spacing: 4) {
+                            Image(systemName: "arrow.up.right.square")
+                            Text("Open OpenAI")
+                        }
                         .font(.system(size: 10, weight: .medium))
                         .frame(maxWidth: .infinity)
                         .frame(height: 24)
+                    }
+                    .buttonStyle(.bordered)
+
+                    Text("OpenAI charges only for usage. This app uses gpt-4o-mini. With normal use, $5 = 15,000+ translations.")
+                        .font(.system(size: 9))
+                        .foregroundColor(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                } else {
+                    SecureField("sk-ant-...", text: $viewModel.claudeApiKeyInput)
+                        .textFieldStyle(.plain)
+                        .padding(8)
+                        .background(Color(NSColor.textBackgroundColor))
+                        .cornerRadius(6)
+                        .font(.system(size: 12, design: .monospaced))
+
+                    Button {
+                        viewModel.saveClaudeAPIKey()
+                    } label: {
+                        Text("Save API Key")
+                            .font(.system(size: 10, weight: .medium))
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 24)
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .disabled(viewModel.claudeApiKeyInput.isEmpty)
+
+                    Button {
+                        if let url = URL(string: "https://console.anthropic.com/settings/keys") {
+                            NSWorkspace.shared.open(url)
+                        }
+                    } label: {
+                        HStack(spacing: 4) {
+                            Image(systemName: "arrow.up.right.square")
+                            Text("Open Anthropic")
+                        }
+                        .font(.system(size: 10, weight: .medium))
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 24)
+                    }
+                    .buttonStyle(.bordered)
+
+                    Text("Anthropic charges only for usage. This app uses claude-sonnet-4. With normal use, $5 = 5,000+ translations.")
+                        .font(.system(size: 9))
+                        .foregroundColor(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
-                .buttonStyle(.borderedProminent)
-                .disabled(viewModel.apiKeyInput.isEmpty)
             }
             .padding(cardPadding + 4)
 
             Divider()
 
-            // Steps to get API key
-            VStack(alignment: .leading, spacing: 8) {
-                Text("How to get an API key")
-                    .font(.system(size: 10, weight: .semibold))
-                    .foregroundColor(.secondary)
-
-                VStack(alignment: .leading, spacing: 6) {
-                    apiKeyStep(number: 1, text: "Sign in at platform.openai.com")
-                    apiKeyStep(number: 2, text: "Go to API Keys section")
-                    apiKeyStep(number: 3, text: "Create new secret key")
-                    apiKeyStep(number: 4, text: "Copy and paste above")
-                }
-
+            // Collapsible "How to get an API key"
+            VStack(spacing: 0) {
                 Button {
-                    if let url = URL(string: "https://platform.openai.com/api-keys") {
-                        NSWorkspace.shared.open(url)
+                    withAnimation(.easeInOut(duration: 0.2)) {
+                        showingOnboardingApiKeySteps.toggle()
                     }
                 } label: {
-                    HStack(spacing: 4) {
-                        Image(systemName: "arrow.up.right.square")
-                        Text("Open OpenAI")
+                    HStack {
+                        Text("How to get an API key")
+                            .font(.system(size: 10, weight: .medium))
+                            .foregroundColor(.secondary)
+                        Spacer()
+                        Image(systemName: showingOnboardingApiKeySteps ? "chevron.up" : "chevron.down")
+                            .font(.system(size: 9, weight: .medium))
+                            .foregroundColor(.secondary)
                     }
-                    .font(.system(size: 10, weight: .medium))
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 24)
+                    .padding(.horizontal, cardPadding + 4)
+                    .frame(height: 32)
                 }
-                .buttonStyle(.bordered)
-                
-                // Pricing info
-                HStack(spacing: 6) {                  
-                    Text("OpenAI charges only for usage. This app uses gpt-4o-mini (~1,500 words/translation). With normal use, $5 = 15,000+ translations.")
-                        .font(.system(size: 9))
-                        .foregroundColor(.secondary)
-                        .fixedSize(horizontal: false, vertical: true)
+                .buttonStyle(.plain)
+
+                if showingOnboardingApiKeySteps {
+                    VStack(alignment: .leading, spacing: 6) {
+                        if onboardingProvider == .openai {
+                            apiKeyStep(number: 1, text: "Sign in at platform.openai.com")
+                            apiKeyStep(number: 2, text: "Go to API Keys section")
+                            apiKeyStep(number: 3, text: "Create new secret key")
+                            apiKeyStep(number: 4, text: "Copy and paste above")
+                        } else {
+                            apiKeyStep(number: 1, text: "Sign in at console.anthropic.com")
+                            apiKeyStep(number: 2, text: "Go to API Keys section")
+                            apiKeyStep(number: 3, text: "Create new key")
+                            apiKeyStep(number: 4, text: "Copy and paste above")
+                        }
+                    }
+                    .padding(.leading, cardPadding + 4)
+                    .padding(.trailing, cardPadding)
+                    .padding(.bottom, cardPadding)
                 }
-                .padding(.top, 2)
             }
-            .padding(cardPadding + 4)
         }
         .background(Color(NSColor.controlBackgroundColor).opacity(0.7))
         .cornerRadius(cardCornerRadius)
@@ -836,17 +1228,18 @@ private struct DebugMenu: View {
 
             Section("Onboarding") {
                 Button("Reset Everything") {
-                    // Delete API key first (it sets some flags)
+                    // Delete API keys first (it sets some flags)
                     viewModel.deleteAPIKey()
-                    
+                    viewModel.deleteClaudeAPIKey()
+
                     // Now reset all onboarding flags
                     UserDefaults.standard.set(false, forKey: "hasSeenWelcome")
                     UserDefaults.standard.set(false, forKey: "onboardingComplete")
-                    
+
                     // Reset trial
                     TrialManager.shared.debugResetTrial()
                     viewModel.refreshTrialStatus()
-                    
+
                     // Force back to welcome screen
                     viewModel.onboardingStep = .welcome
                 }

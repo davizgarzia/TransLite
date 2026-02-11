@@ -1,24 +1,70 @@
 import Foundation
 import Security
 
-/// Handles secure storage of the OpenAI API key using macOS Keychain Services
+/// Handles secure storage of API keys using macOS Keychain Services
 final class KeychainHelper {
     static let shared = KeychainHelper()
 
     private let service = "com.translite.apikey"
-    private let account = "openai-api-key"
+    private let openAIAccount = "openai-api-key"
+    private let claudeAccount = "claude-api-key"
 
     private init() {}
 
-    /// Saves the API key to the Keychain
-    /// - Parameter apiKey: The OpenAI API key to store
-    /// - Returns: True if successful, false otherwise
+    // MARK: - OpenAI API Key
+
+    /// Saves the OpenAI API key to the Keychain
     @discardableResult
     func saveAPIKey(_ apiKey: String) -> Bool {
-        guard let data = apiKey.data(using: .utf8) else { return false }
+        saveKey(apiKey, account: openAIAccount)
+    }
 
-        // First, try to delete any existing key
-        deleteAPIKey()
+    /// Retrieves the OpenAI API key from the Keychain
+    func getAPIKey() -> String? {
+        getKey(account: openAIAccount)
+    }
+
+    /// Deletes the OpenAI API key from the Keychain
+    @discardableResult
+    func deleteAPIKey() -> Bool {
+        deleteKey(account: openAIAccount)
+    }
+
+    /// Checks if an OpenAI API key exists in the Keychain
+    var hasAPIKey: Bool {
+        getAPIKey() != nil
+    }
+
+    // MARK: - Claude API Key
+
+    /// Saves the Claude API key to the Keychain
+    @discardableResult
+    func saveClaudeAPIKey(_ apiKey: String) -> Bool {
+        saveKey(apiKey, account: claudeAccount)
+    }
+
+    /// Retrieves the Claude API key from the Keychain
+    func getClaudeAPIKey() -> String? {
+        getKey(account: claudeAccount)
+    }
+
+    /// Deletes the Claude API key from the Keychain
+    @discardableResult
+    func deleteClaudeAPIKey() -> Bool {
+        deleteKey(account: claudeAccount)
+    }
+
+    /// Checks if a Claude API key exists in the Keychain
+    var hasClaudeAPIKey: Bool {
+        getClaudeAPIKey() != nil
+    }
+
+    // MARK: - Private Helpers
+
+    private func saveKey(_ key: String, account: String) -> Bool {
+        guard let data = key.data(using: .utf8) else { return false }
+
+        deleteKey(account: account)
 
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
@@ -32,9 +78,7 @@ final class KeychainHelper {
         return status == errSecSuccess
     }
 
-    /// Retrieves the API key from the Keychain
-    /// - Returns: The stored API key, or nil if not found
-    func getAPIKey() -> String? {
+    private func getKey(account: String) -> String? {
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: service,
@@ -55,10 +99,8 @@ final class KeychainHelper {
         return apiKey
     }
 
-    /// Deletes the API key from the Keychain
-    /// - Returns: True if successful or key didn't exist, false on error
     @discardableResult
-    func deleteAPIKey() -> Bool {
+    private func deleteKey(account: String) -> Bool {
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: service,
@@ -67,10 +109,5 @@ final class KeychainHelper {
 
         let status = SecItemDelete(query as CFDictionary)
         return status == errSecSuccess || status == errSecItemNotFound
-    }
-
-    /// Checks if an API key exists in the Keychain
-    var hasAPIKey: Bool {
-        getAPIKey() != nil
     }
 }

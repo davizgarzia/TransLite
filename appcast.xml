@@ -6,7 +6,27 @@
         <description>Updates for TransLite</description>
         <language>en</language>
 
-        <!-- Current version: 1.0.9 -->
+        <!-- Current version: 1.1.0 -->
+        <item>
+            <title>Version 1.1.0</title>
+            <pubDate>Wed, 11 Feb 2026 16:05:44 +0100</pubDate>
+            <sparkle:version>11</sparkle:version>
+            <sparkle:shortVersionString>1.1.0</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>13.0</sparkle:minimumSystemVersion>
+            <description><![CDATA[
+                <h2>TransLite 1.1.0</h2>
+                <ul>
+                    <li>Double-tap shortcut to improve text instead of translating</li>
+                </ul>
+            ]]></description>
+            <enclosure
+                url="https://github.com/davizgarzia/TransLite/releases/download/v1.1.0/TransLite-1.1.0.dmg"
+                sparkle:edSignature="FFTZM+hJk2qlTYH1EH14R1J+BqVPTKykVTzmDJzyc3qqdo1QqPrAnsXsMfMZu3Z6GS7EbeT/OtMepgn/0t5zAQ=="
+                length="1692328"
+                type="application/octet-stream" />
+        </item>
+
+        <!-- Previous version: 1.0.9 -->
         <item>
             <title>Version 1.0.9</title>
             <pubDate>Wed, 11 Feb 2026 14:44:24 +0100</pubDate>

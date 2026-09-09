@@ -108,8 +108,6 @@ private actor AnalyticsDispatcher {
     func enqueue(event: String, properties: [String: AnalyticsValue]) async {
         let info = Bundle.main.infoDictionary
         let appVersion = info?["CFBundleShortVersionString"] as? String ?? "unknown"
-        let appBuild = info?["CFBundleVersion"] as? String ?? "unknown"
-
         pendingEvents.append(
             Event(
                 projectKey: Self.projectKey,
@@ -121,8 +119,7 @@ private actor AnalyticsDispatcher {
                 properties: properties,
                 context: [
                     "platform": .string("macos"),
-                    "app_version": .string(appVersion),
-                    "app_build": .string(appBuild)
+                    "app_version": .string(appVersion)
                 ]
             )
         )

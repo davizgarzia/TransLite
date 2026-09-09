@@ -88,7 +88,7 @@ func translate(
         throw OpenAIError.invalidAPIKey
 
     case 429:
-        throw OpenAIError.rateLimited
+        throw OpenAIError.rateLimited(Self.rateLimitMessage(from: data, response: httpResponse))
 
     case 500...599:
         throw OpenAIError.serverError
@@ -165,7 +165,7 @@ func translate(
             throw OpenAIError.invalidAPIKey
 
         case 429:
-            throw OpenAIError.rateLimited
+            throw OpenAIError.rateLimited(Self.rateLimitMessage(from: data, response: httpResponse))
 
         case 500...599:
             throw OpenAIError.serverError
@@ -176,6 +176,18 @@ func translate(
             }
             throw OpenAIError.unknownError(httpResponse.statusCode)
         }
+    }
+
+    private static func rateLimitMessage(from data: Data, response: HTTPURLResponse) -> String {
+        let fallback = "Rate limited by OpenAI - please wait"
+        let providerMessage = (try? JSONDecoder().decode(OpenAIErrorResponse.self, from: data))?.error.message ?? fallback
+
+        guard let retryAfter = response.value(forHTTPHeaderField: "Retry-After"),
+              !retryAfter.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            return providerMessage
+        }
+
+        return "\(providerMessage) Try again in \(retryAfter)s."
     }
 }
 
@@ -215,7 +227,7 @@ enum OpenAIError: LocalizedError {
     case invalidResponse
     case emptyResponse
     case invalidAPIKey
-    case rateLimited
+    case rateLimited(String)
     case serverError
     case apiError(String)
     case unknownError(Int)
@@ -228,8 +240,8 @@ enum OpenAIError: LocalizedError {
             return "Empty response from OpenAI"
         case .invalidAPIKey:
             return "Invalid API key"
-        case .rateLimited:
-            return "Rate limited - please wait"
+        case .rateLimited(let message):
+            return message
         case .serverError:
             return "OpenAI server error"
         case .apiError(let message):

@@ -3,7 +3,7 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 77;
+	objectVersion = 63;
 	objects = {
 
 /* Begin PBXBuildFile section */
@@ -123,7 +123,6 @@
 				LastUpgradeCheck = 1500;
 				TargetAttributes = {
 					D23825B110D85AA44871C60A = {
-						DevelopmentTeam = 2DBHSD6G6F;
 						ProvisioningStyle = Manual;
 					};
 				};
@@ -141,7 +140,6 @@
 			packageReferences = (
 				959ED98DC9AB57DB10E7C9D6 /* XCRemoteSwiftPackageReference "Sparkle" */,
 			);
-			preferredProjectObjectVersion = 77;
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
@@ -189,7 +187,9 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = TransLite/TransLite.entitlements;
+				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "-";
 				COMBINE_HIDPI_IMAGES = YES;
+				"DEVELOPMENT_TEAM[sdk=macosx*]" = 2DBHSD6G6F;
 				INFOPLIST_FILE = TransLite/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -206,7 +206,9 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = TransLite/TransLite.entitlements;
+				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "-";
 				COMBINE_HIDPI_IMAGES = YES;
+				"DEVELOPMENT_TEAM[sdk=macosx*]" = 2DBHSD6G6F;
 				INFOPLIST_FILE = TransLite/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",

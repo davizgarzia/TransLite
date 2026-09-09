@@ -29,7 +29,7 @@
     <key>SUFeedURL</key>
     <string>https://raw.githubusercontent.com/davizgarzia/TransLite/main/appcast.xml</string>
     <key>SUPublicEDKey</key>
-    <string>J0iGisQPPA0A4O6OUTmL0CdUZp0B9I+q3U/l50AaCQk=</string>
+    <string>UcyZJEJTlzKEgOyXfUQjkrFzSeRepu9qFLJAY6iRVtE=</string>
     <key>SUEnableAutomaticChecks</key>
     <true/>
 </dict>

@@ -91,7 +91,7 @@ final class ClaudeClient {
             throw ClaudeError.invalidAPIKey
 
         case 429:
-            throw ClaudeError.rateLimited
+            throw ClaudeError.rateLimited(Self.rateLimitMessage(from: data, response: httpResponse))
 
         case 500...599:
             throw ClaudeError.serverError
@@ -169,7 +169,7 @@ final class ClaudeClient {
             throw ClaudeError.invalidAPIKey
 
         case 429:
-            throw ClaudeError.rateLimited
+            throw ClaudeError.rateLimited(Self.rateLimitMessage(from: data, response: httpResponse))
 
         case 500...599:
             throw ClaudeError.serverError
@@ -180,6 +180,18 @@ final class ClaudeClient {
             }
             throw ClaudeError.unknownError(httpResponse.statusCode)
         }
+    }
+
+    private static func rateLimitMessage(from data: Data, response: HTTPURLResponse) -> String {
+        let fallback = "Rate limited by Claude - please wait"
+        let providerMessage = (try? JSONDecoder().decode(ClaudeErrorResponse.self, from: data))?.error.message ?? fallback
+
+        guard let retryAfter = response.value(forHTTPHeaderField: "Retry-After"),
+              !retryAfter.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            return providerMessage
+        }
+
+        return "\(providerMessage) Try again in \(retryAfter)s."
     }
 }
 
@@ -220,7 +232,7 @@ enum ClaudeError: LocalizedError {
     case invalidResponse
     case emptyResponse
     case invalidAPIKey
-    case rateLimited
+    case rateLimited(String)
     case serverError
     case apiError(String)
     case unknownError(Int)
@@ -233,8 +245,8 @@ enum ClaudeError: LocalizedError {
             return "Empty response from Claude"
         case .invalidAPIKey:
             return "Invalid API key"
-        case .rateLimited:
-            return "Rate limited - please wait"
+        case .rateLimited(let message):
+            return message
         case .serverError:
             return "Claude server error"
         case .apiError(let message):

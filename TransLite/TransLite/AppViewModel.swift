@@ -373,8 +373,9 @@ final class AppViewModel: ObservableObject {
         }
 
         // Get API key based on selected provider
+        let selectedProvider = apiProvider
         let apiKey: String
-        switch apiProvider {
+        switch selectedProvider {
         case .openai:
             guard hasAPIKey, let key = keychain.getAPIKey() else {
                 statusMessage = "No OpenAI API key configured"
@@ -403,6 +404,10 @@ final class AppViewModel: ObservableObject {
 
             guard let text = clipboard.readText() else {
                 statusMessage = "No text selected"
+                AnalyticsClient.track("translation_failed", properties: [
+                    "provider": .string(selectedProvider.rawValue),
+                    "reason": .string("no_selected_text")
+                ])
                 hud.hide()
                 isTranslating = false
                 return
@@ -410,10 +415,18 @@ final class AppViewModel: ObservableObject {
 
             statusMessage = "Translating..."
             hud.update(message: "Translating...")
+            let startedAt = Date()
+            let baseProperties: [String: AnalyticsValue] = [
+                "provider": .string(selectedProvider.rawValue),
+                "target_language": .string(targetLanguage.rawValue),
+                "tone": .string(translationTone.rawValue),
+                "auto_paste": .boolean(autoPasteEnabled)
+            ]
+            AnalyticsClient.track("translation_started", properties: baseProperties)
 
             do {
                 let translated: String
-                switch apiProvider {
+                switch selectedProvider {
                 case .openai:
                     translated = try await openAI.translate(
                         text: text,
@@ -433,6 +446,7 @@ final class AppViewModel: ObservableObject {
                 // Write to clipboard
                 if clipboard.writeText(translated) {
                     statusMessage = "Translated successfully"
+                    var delivery = "clipboard"
 
                     // Auto-paste if enabled and has permission
                     if autoPasteEnabled {
@@ -445,19 +459,35 @@ final class AppViewModel: ObservableObject {
                             try? await Task.sleep(nanoseconds: 100_000_000) // 100ms
                             if accessibility.simulatePaste() {
                                 statusMessage = "Translated & pasted"
+                                delivery = "auto_paste"
                             } else {
                                 statusMessage = "Translated (paste failed)"
+                                delivery = "paste_failed"
                             }
                         } else {
                             statusMessage = "Translated (no paste permission)"
+                            delivery = "no_accessibility_permission"
                         }
                     }
+
+                    var completedProperties = baseProperties
+                    completedProperties["duration_ms"] = .integer(Self.durationMilliseconds(since: startedAt))
+                    completedProperties["delivery"] = .string(delivery)
+                    AnalyticsClient.track("translation_completed", properties: completedProperties)
                 } else {
                     statusMessage = "Failed to write clipboard"
+                    var failedProperties = baseProperties
+                    failedProperties["duration_ms"] = .integer(Self.durationMilliseconds(since: startedAt))
+                    failedProperties["reason"] = .string("clipboard_write_failed")
+                    AnalyticsClient.track("translation_failed", properties: failedProperties)
                 }
 
             } catch {
                 statusMessage = error.localizedDescription
+                var failedProperties = baseProperties
+                failedProperties["duration_ms"] = .integer(Self.durationMilliseconds(since: startedAt))
+                failedProperties["reason"] = .string(Self.analyticsErrorCategory(error))
+                AnalyticsClient.track("translation_failed", properties: failedProperties)
             }
 
             hud.hide()
@@ -479,8 +509,9 @@ final class AppViewModel: ObservableObject {
         }
 
         // Get API key based on selected provider
+        let selectedProvider = apiProvider
         let apiKey: String
-        switch apiProvider {
+        switch selectedProvider {
         case .openai:
             guard hasAPIKey, let key = keychain.getAPIKey() else {
                 statusMessage = "No OpenAI API key configured"
@@ -509,6 +540,10 @@ final class AppViewModel: ObservableObject {
 
             guard let text = clipboard.readText() else {
                 statusMessage = "No text selected"
+                AnalyticsClient.track("improvement_failed", properties: [
+                    "provider": .string(selectedProvider.rawValue),
+                    "reason": .string("no_selected_text")
+                ])
                 hud.hide()
                 isTranslating = false
                 return
@@ -516,10 +551,16 @@ final class AppViewModel: ObservableObject {
 
             statusMessage = "Improving..."
             hud.update(message: "Improving...")
+            let startedAt = Date()
+            let baseProperties: [String: AnalyticsValue] = [
+                "provider": .string(selectedProvider.rawValue),
+                "auto_paste": .boolean(autoPasteEnabled)
+            ]
+            AnalyticsClient.track("improvement_started", properties: baseProperties)
 
             do {
                 let improved: String
-                switch apiProvider {
+                switch selectedProvider {
                 case .openai:
                     improved = try await openAI.improve(
                         text: text,
@@ -535,6 +576,7 @@ final class AppViewModel: ObservableObject {
                 // Write to clipboard
                 if clipboard.writeText(improved) {
                     statusMessage = "Improved successfully"
+                    var delivery = "clipboard"
 
                     // Auto-paste if enabled and has permission
                     if autoPasteEnabled {
@@ -547,24 +589,76 @@ final class AppViewModel: ObservableObject {
                             try? await Task.sleep(nanoseconds: 100_000_000) // 100ms
                             if accessibility.simulatePaste() {
                                 statusMessage = "Improved & pasted"
+                                delivery = "auto_paste"
                             } else {
                                 statusMessage = "Improved (paste failed)"
+                                delivery = "paste_failed"
                             }
                         } else {
                             statusMessage = "Improved (no paste permission)"
+                            delivery = "no_accessibility_permission"
                         }
                     }
+
+                    var completedProperties = baseProperties
+                    completedProperties["duration_ms"] = .integer(Self.durationMilliseconds(since: startedAt))
+                    completedProperties["delivery"] = .string(delivery)
+                    AnalyticsClient.track("improvement_completed", properties: completedProperties)
                 } else {
                     statusMessage = "Failed to write clipboard"
+                    var failedProperties = baseProperties
+                    failedProperties["duration_ms"] = .integer(Self.durationMilliseconds(since: startedAt))
+                    failedProperties["reason"] = .string("clipboard_write_failed")
+                    AnalyticsClient.track("improvement_failed", properties: failedProperties)
                 }
 
             } catch {
                 statusMessage = error.localizedDescription
+                var failedProperties = baseProperties
+                failedProperties["duration_ms"] = .integer(Self.durationMilliseconds(since: startedAt))
+                failedProperties["reason"] = .string(Self.analyticsErrorCategory(error))
+                AnalyticsClient.track("improvement_failed", properties: failedProperties)
             }
 
             hud.hide()
             isTranslating = false
         }
+    }
+
+    private static func durationMilliseconds(since startDate: Date) -> Int {
+        max(0, Int(Date().timeIntervalSince(startDate) * 1_000))
+    }
+
+    private static func analyticsErrorCategory(_ error: Error) -> String {
+        if error is URLError {
+            return "network_error"
+        }
+
+        if let error = error as? OpenAIError {
+            switch error {
+            case .invalidResponse: return "invalid_response"
+            case .emptyResponse: return "empty_response"
+            case .invalidAPIKey: return "invalid_api_key"
+            case .rateLimited: return "rate_limited"
+            case .serverError: return "server_error"
+            case .apiError: return "provider_error"
+            case .unknownError: return "http_error"
+            }
+        }
+
+        if let error = error as? ClaudeError {
+            switch error {
+            case .invalidResponse: return "invalid_response"
+            case .emptyResponse: return "empty_response"
+            case .invalidAPIKey: return "invalid_api_key"
+            case .rateLimited: return "rate_limited"
+            case .serverError: return "server_error"
+            case .apiError: return "provider_error"
+            case .unknownError: return "http_error"
+            }
+        }
+
+        return "unknown_error"
     }
 
     // MARK: - Accessibility

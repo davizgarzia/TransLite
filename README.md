@@ -36,6 +36,16 @@ To compile without opening the app, use `./scripts/dev.sh --build-only`.
 
 There is no hot reload; running the script is the short edit-build-launch loop.
 
+## Anonymous analytics
+
+TransLite sends anonymous operational events for app launches, translations
+and text improvements. Events may include the selected provider, language,
+tone, duration and delivery result. TransLite never sends selected or generated
+text, API keys, license keys, names or email addresses.
+
+Events that cannot be delivered are queued locally and retried with the same
+event ID. The queue is capped at 100 events.
+
 ## Publishing a release
 
 The release script requires a clean `main` branch, XcodeGen, `create-dmg`, an

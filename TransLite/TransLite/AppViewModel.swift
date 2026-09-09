@@ -63,11 +63,13 @@ enum TranslationTone: String, CaseIterable {
 enum APIProvider: String, CaseIterable {
     case openai = "openai"
     case claude = "claude"
+    case custom = "custom"
 
     var displayName: String {
         switch self {
         case .openai: return "OpenAI"
         case .claude: return "Claude"
+        case .custom: return "Custom"
         }
     }
 
@@ -75,6 +77,7 @@ enum APIProvider: String, CaseIterable {
         switch self {
         case .openai: return "brain"
         case .claude: return "ClaudeIcon"
+        case .custom: return "server.rack"
         }
     }
 }
@@ -112,6 +115,16 @@ final class AppViewModel: ObservableObject {
         didSet {
             UserDefaults.standard.set(Int(hotkeyKeyCode), forKey: "hotkeyKeyCode")
             AppDelegate.shared?.hotkeyManager?.updateHotkey(keyCode: hotkeyKeyCode)
+        }
+    }
+    @Published var openAIBaseURL: String = "" {
+        didSet {
+            UserDefaults.standard.set(openAIBaseURL, forKey: "openAIBaseURL")
+        }
+    }
+    @Published var openAIModel: String = "" {
+        didSet {
+            UserDefaults.standard.set(openAIModel, forKey: "openAIModel")
         }
     }
     @Published var statusMessage: String = ""
@@ -176,6 +189,10 @@ final class AppViewModel: ObservableObject {
             self.apiProvider = .openai
         }
 
+        // Load OpenAI endpoint settings
+        self.openAIBaseURL = UserDefaults.standard.string(forKey: "openAIBaseURL") ?? ""
+        self.openAIModel = UserDefaults.standard.string(forKey: "openAIModel") ?? ""
+
         // Load hotkey key code
         let savedKeyCode = UserDefaults.standard.integer(forKey: "hotkeyKeyCode")
         self.hotkeyKeyCode = savedKeyCode > 0 ? UInt32(savedKeyCode) : HotkeyManager.defaultKeyCode
@@ -215,6 +232,74 @@ final class AppViewModel: ObservableObject {
         }
     }
 
+    // MARK: - Custom Endpoint Helpers
+
+    var effectiveOpenAIBaseURL: String {
+        let trimmed = openAIBaseURL.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.isEmpty ? OpenAIClient.defaultBaseURL : trimmed
+    }
+
+    var effectiveOpenAIModel: String {
+        let trimmed = openAIModel.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.isEmpty ? OpenAIClient.defaultModel : trimmed
+    }
+
+    var hasCustomEndpoint: Bool {
+        !openAIBaseURL.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+
+    func saveCustomEndpoint(url: String, apiKey: String, model: String) {
+        let trimmedURL = url.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedURL.isEmpty else {
+            statusMessage = "Base URL cannot be empty"
+            return
+        }
+        openAIBaseURL = trimmedURL
+        openAIModel = model.trimmingCharacters(in: .whitespacesAndNewlines)
+        let trimmedKey = apiKey.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !trimmedKey.isEmpty {
+            keychain.saveCustomAPIKey(trimmedKey)
+        } else {
+            keychain.deleteCustomAPIKey()
+        }
+        apiProvider = .custom
+        statusMessage = ""
+        if onboardingStep == .apiKey {
+            onboardingStep = .permissions
+        }
+    }
+
+    func deleteCustomEndpoint() {
+        openAIBaseURL = ""
+        openAIModel = ""
+        keychain.deleteCustomAPIKey()
+        statusMessage = "Custom endpoint removed"
+        if apiProvider == .custom {
+            if hasAPIKey {
+                apiProvider = .openai
+            } else if hasClaudeAPIKey {
+                apiProvider = .claude
+            } else {
+                UserDefaults.standard.set(false, forKey: "onboardingComplete")
+                onboardingStep = .apiKey
+            }
+        }
+    }
+
+    func testCustomEndpoint() {
+        guard hasCustomEndpoint else { return }
+        let key = keychain.getCustomAPIKey() ?? ""
+        Task {
+            statusMessage = "Testing custom endpoint..."
+            do {
+                _ = try await openAI.translate(text: "Hi", apiKey: key, targetLanguage: "Spanish", tone: "Preserve the original tone", baseURL: effectiveOpenAIBaseURL, model: effectiveOpenAIModel)
+                statusMessage = "Custom endpoint working ✓"
+            } catch {
+                statusMessage = error.localizedDescription
+            }
+        }
+    }
+
     // MARK: - API Key Management
 
     func saveAPIKey() {
@@ -225,10 +310,6 @@ final class AppViewModel: ObservableObject {
             return
         }
 
-        guard trimmedKey.hasPrefix("sk-") else {
-            statusMessage = "Invalid API key format"
-            return
-        }
 
         if keychain.saveAPIKey(trimmedKey) {
             hasAPIKey = true
@@ -319,7 +400,7 @@ final class AppViewModel: ObservableObject {
         Task {
             statusMessage = "Testing OpenAI..."
             do {
-                _ = try await openAI.translate(text: "Hi", apiKey: key, targetLanguage: "Spanish", tone: "Preserve the original tone")
+                _ = try await openAI.translate(text: "Hi", apiKey: key, targetLanguage: "Spanish", tone: "Preserve the original tone", baseURL: effectiveOpenAIBaseURL, model: effectiveOpenAIModel)
                 statusMessage = "OpenAI key working ✓"
             } catch {
                 statusMessage = error.localizedDescription
@@ -388,6 +469,12 @@ final class AppViewModel: ObservableObject {
                 return
             }
             apiKey = key
+        case .custom:
+            guard hasCustomEndpoint else {
+                statusMessage = "No custom endpoint configured"
+                return
+            }
+            apiKey = keychain.getCustomAPIKey() ?? ""
         }
 
         isTranslating = true
@@ -432,7 +519,9 @@ final class AppViewModel: ObservableObject {
                         text: text,
                         apiKey: apiKey,
                         targetLanguage: targetLanguage.rawValue,
-                        tone: translationTone.promptInstruction
+                        tone: translationTone.promptInstruction,
+                        baseURL: effectiveOpenAIBaseURL,
+                        model: effectiveOpenAIModel
                     )
                 case .claude:
                     translated = try await claude.translate(
@@ -440,6 +529,15 @@ final class AppViewModel: ObservableObject {
                         apiKey: apiKey,
                         targetLanguage: targetLanguage.rawValue,
                         tone: translationTone.promptInstruction
+                    )
+                case .custom:
+                    translated = try await openAI.translate(
+                        text: text,
+                        apiKey: apiKey,
+                        targetLanguage: targetLanguage.rawValue,
+                        tone: translationTone.promptInstruction,
+                        baseURL: effectiveOpenAIBaseURL,
+                        model: effectiveOpenAIModel
                     )
                 }
 
@@ -524,6 +622,12 @@ final class AppViewModel: ObservableObject {
                 return
             }
             apiKey = key
+        case .custom:
+            guard hasCustomEndpoint else {
+                statusMessage = "No custom endpoint configured"
+                return
+            }
+            apiKey = keychain.getCustomAPIKey() ?? ""
         }
 
         isTranslating = true
@@ -564,12 +668,21 @@ final class AppViewModel: ObservableObject {
                 case .openai:
                     improved = try await openAI.improve(
                         text: text,
-                        apiKey: apiKey
+                        apiKey: apiKey,
+                        baseURL: effectiveOpenAIBaseURL,
+                        model: effectiveOpenAIModel
                     )
                 case .claude:
                     improved = try await claude.improve(
                         text: text,
                         apiKey: apiKey
+                    )
+                case .custom:
+                    improved = try await openAI.improve(
+                        text: text,
+                        apiKey: apiKey,
+                        baseURL: effectiveOpenAIBaseURL,
+                        model: effectiveOpenAIModel
                     )
                 }
 

@@ -8,6 +8,7 @@ final class KeychainHelper {
     private let service = "com.translite.apikey"
     private let openAIAccount = "openai-api-key"
     private let claudeAccount = "claude-api-key"
+    private let customAccount = "custom-api-key"
 
     private init() {}
 
@@ -57,6 +58,26 @@ final class KeychainHelper {
     /// Checks if a Claude API key exists in the Keychain
     var hasClaudeAPIKey: Bool {
         getClaudeAPIKey() != nil
+    }
+
+    // MARK: - Custom API Key (optional, for OpenAI-compatible endpoints)
+
+    @discardableResult
+    func saveCustomAPIKey(_ apiKey: String) -> Bool {
+        saveKey(apiKey, account: customAccount)
+    }
+
+    func getCustomAPIKey() -> String? {
+        getKey(account: customAccount)
+    }
+
+    @discardableResult
+    func deleteCustomAPIKey() -> Bool {
+        deleteKey(account: customAccount)
+    }
+
+    var hasCustomAPIKey: Bool {
+        getCustomAPIKey() != nil
     }
 
     // MARK: - Private Helpers

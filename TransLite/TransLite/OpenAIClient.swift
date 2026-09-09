@@ -3,11 +3,21 @@ import Foundation
 /// Handles communication with the OpenAI API for translation
 final class OpenAIClient {
     static let shared = OpenAIClient()
+    static let defaultBaseURL = "https://api.openai.com/v1"
+    static let defaultModel = "gpt-4o-mini"
 
-    private let endpoint = URL(string: "https://api.openai.com/v1/chat/completions")!
     private let session = URLSession.shared
 
     private init() {}
+
+    private func makeEndpointURL(baseURL: String) throws -> URL {
+        let trimmed = baseURL.trimmingCharacters(in: .whitespacesAndNewlines)
+            .trimmingCharacters(in: CharacterSet(charactersIn: "/"))
+        guard let url = URL(string: "\(trimmed)/chat/completions") else {
+            throw OpenAIError.invalidEndpointURL
+        }
+        return url
+    }
 
     /// Translates text using the OpenAI API
     /// - Parameters:
@@ -20,7 +30,9 @@ func translate(
     text: String,
     apiKey: String,
     targetLanguage: String = "English",
-    tone: String = "Match the original tone. Allow minimal adjustments only if needed for naturalness."
+    tone: String = "Match the original tone. Allow minimal adjustments only if needed for naturalness.",
+    baseURL: String = OpenAIClient.defaultBaseURL,
+    model: String = OpenAIClient.defaultModel
 ) async throws -> String {
 
     let systemPrompt = """
@@ -54,7 +66,7 @@ func translate(
     """
 
     let requestBody = OpenAIRequest(
-        model: "gpt-4o-mini",
+        model: model,
         messages: [
             Message(role: "system", content: systemPrompt),
             Message(role: "user", content: userPrompt)
@@ -63,7 +75,7 @@ func translate(
         max_tokens: 2048
     )
 
-    var request = URLRequest(url: endpoint)
+    var request = URLRequest(url: try makeEndpointURL(baseURL: baseURL))
     request.httpMethod = "POST"
     request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
     request.setValue("application/json", forHTTPHeaderField: "Content-Type")
@@ -106,7 +118,12 @@ func translate(
     ///   - text: The text to improve
     ///   - apiKey: The OpenAI API key
     /// - Returns: The improved text
-    func improve(text: String, apiKey: String) async throws -> String {
+    func improve(
+        text: String,
+        apiKey: String,
+        baseURL: String = OpenAIClient.defaultBaseURL,
+        model: String = OpenAIClient.defaultModel
+    ) async throws -> String {
         let systemPrompt = """
         You are a writing assistant that improves text.
 
@@ -131,7 +148,7 @@ func translate(
         """
 
         let requestBody = OpenAIRequest(
-            model: "gpt-4o-mini",
+            model: model,
             messages: [
                 Message(role: "system", content: systemPrompt),
                 Message(role: "user", content: userPrompt)
@@ -140,7 +157,7 @@ func translate(
             max_tokens: 2048
         )
 
-        var request = URLRequest(url: endpoint)
+        var request = URLRequest(url: try makeEndpointURL(baseURL: baseURL))
         request.httpMethod = "POST"
         request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
@@ -231,6 +248,7 @@ enum OpenAIError: LocalizedError {
     case serverError
     case apiError(String)
     case unknownError(Int)
+    case invalidEndpointURL
 
     var errorDescription: String? {
         switch self {
@@ -248,6 +266,8 @@ enum OpenAIError: LocalizedError {
             return message
         case .unknownError(let code):
             return "Error: HTTP \(code)"
+        case .invalidEndpointURL:
+            return "Invalid endpoint URL"
         }
     }
 }

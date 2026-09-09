@@ -39,6 +39,9 @@ struct PopoverView: View {
     }
 
     @State private var showingLicenseInput = false
+    @State private var customEndpointURLInput: String = ""
+    @State private var customEndpointKeyInput: String = ""
+    @State private var customEndpointModelInput: String = ""
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -400,8 +403,13 @@ struct PopoverView: View {
                 Picker("", selection: Binding(
                     get: { viewModel.apiProvider },
                     set: { newProvider in
-                        let hasKey = newProvider == .openai ? viewModel.hasAPIKey : viewModel.hasClaudeAPIKey
-                        if hasKey {
+                        let isConfigured: Bool
+                        switch newProvider {
+                        case .openai: isConfigured = viewModel.hasAPIKey
+                        case .claude: isConfigured = viewModel.hasClaudeAPIKey
+                        case .custom: isConfigured = viewModel.hasCustomEndpoint
+                        }
+                        if isConfigured {
                             viewModel.apiProvider = newProvider
                         } else {
                             addingKeyFor = newProvider
@@ -412,7 +420,8 @@ struct PopoverView: View {
                         HStack {
                             Text(provider.displayName)
                             if (provider == .openai && !viewModel.hasAPIKey) ||
-                               (provider == .claude && !viewModel.hasClaudeAPIKey) {
+                               (provider == .claude && !viewModel.hasClaudeAPIKey) ||
+                               (provider == .custom && !viewModel.hasCustomEndpoint) {
                                 Text("(No key)")
                                     .foregroundColor(.secondary)
                             }
@@ -545,6 +554,51 @@ struct PopoverView: View {
                 }
                 .padding(.horizontal, cardPadding)
                 .frame(height: 36)
+
+                Divider().padding(.leading, cardPadding)
+
+                // Custom Endpoint row
+                HStack {
+                    HStack(spacing: 4) {
+                        Image(systemName: "server.rack")
+                            .frame(width: 11, height: 11)
+                        Text("Custom")
+                    }
+                    .font(.system(size: 11))
+                    .foregroundColor(.secondary)
+
+                    if viewModel.hasCustomEndpoint {
+                        Image(systemName: "checkmark.circle.fill")
+                            .foregroundColor(.green)
+                            .font(.system(size: 10))
+                    }
+
+                    Spacer()
+
+                    if viewModel.hasCustomEndpoint {
+                        Menu {
+                            Button("Test Endpoint") { viewModel.testCustomEndpoint() }
+                            Divider()
+                            Button("Remove", role: .destructive) { viewModel.deleteCustomEndpoint() }
+                        } label: {
+                            Image(systemName: "ellipsis")
+                                .font(.system(size: 12, weight: .medium))
+                                .foregroundColor(.secondary)
+                        }
+                        .menuStyle(.borderlessButton)
+                        .menuIndicator(.hidden)
+                        .frame(width: 24)
+                    } else {
+                        Button("Add") {
+                            addingKeyFor = .custom
+                        }
+                        .font(.system(size: 9, weight: .medium))
+                        .buttonStyle(.bordered)
+                        .controlSize(.small)
+                    }
+                }
+                .padding(.horizontal, cardPadding)
+                .frame(height: 36)
             }
         }
         .background(Color(NSColor.controlBackgroundColor).opacity(0.7))
@@ -563,14 +617,18 @@ struct PopoverView: View {
                             .resizable()
                             .aspectRatio(contentMode: .fit)
                             .frame(width: 28, height: 28)
-                    } else {
+                    } else if provider == .claude {
                         Image("ClaudeIcon")
                             .resizable()
                             .aspectRatio(contentMode: .fit)
                             .frame(width: 28, height: 28)
+                    } else {
+                        Image(systemName: "server.rack")
+                            .font(.system(size: 22))
+                            .frame(width: 28, height: 28)
                     }
 
-                    Text("Add your \(provider.displayName) Key")
+                    Text(provider == .custom ? "Custom Endpoint" : "Add your \(provider.displayName) Key")
                         .font(.system(size: 13, weight: .semibold))
                 }
                 .frame(maxWidth: .infinity)
@@ -599,7 +657,7 @@ struct PopoverView: View {
             // API key input + Save + Open link + pricing
             VStack(spacing: 8) {
                 if provider == .openai {
-                    SecureField("sk-...", text: $viewModel.apiKeyInput)
+                    SecureField("API key", text: $viewModel.apiKeyInput)
                         .textFieldStyle(.plain)
                         .padding(8)
                         .background(Color(NSColor.textBackgroundColor))
@@ -635,11 +693,11 @@ struct PopoverView: View {
                     }
                     .buttonStyle(.bordered)
 
-                    Text("OpenAI charges only for usage. This app uses gpt-4o-mini. With normal use, $5 = 15,000+ translations.")
+                    Text("OpenAI charges only for usage. To use a custom endpoint (Ollama, LM Studio, etc.), configure it in the API Keys section after saving.")
                         .font(.system(size: 9))
                         .foregroundColor(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
-                } else {
+                } else if provider == .claude {
                     SecureField("sk-ant-...", text: $viewModel.claudeApiKeyInput)
                         .textFieldStyle(.plain)
                         .padding(8)
@@ -680,10 +738,61 @@ struct PopoverView: View {
                         .font(.system(size: 9))
                         .foregroundColor(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
+                } else {
+                    // Custom endpoint
+                    TextField("Base URL (e.g. http://localhost:11434/v1)", text: $customEndpointURLInput)
+                        .textFieldStyle(.plain)
+                        .padding(8)
+                        .background(Color(NSColor.textBackgroundColor))
+                        .cornerRadius(6)
+                        .font(.system(size: 11, design: .monospaced))
+                        .onAppear { customEndpointURLInput = viewModel.openAIBaseURL }
+
+                    SecureField("API key (optional)", text: $customEndpointKeyInput)
+                        .textFieldStyle(.plain)
+                        .padding(8)
+                        .background(Color(NSColor.textBackgroundColor))
+                        .cornerRadius(6)
+                        .font(.system(size: 11, design: .monospaced))
+
+                    TextField("Model (default: gpt-4o-mini)", text: $customEndpointModelInput)
+                        .textFieldStyle(.plain)
+                        .padding(8)
+                        .background(Color(NSColor.textBackgroundColor))
+                        .cornerRadius(6)
+                        .font(.system(size: 11, design: .monospaced))
+                        .onAppear { customEndpointModelInput = viewModel.openAIModel }
+
+                    Button {
+                        viewModel.saveCustomEndpoint(
+                            url: customEndpointURLInput,
+                            apiKey: customEndpointKeyInput,
+                            model: customEndpointModelInput
+                        )
+                        if viewModel.hasCustomEndpoint {
+                            customEndpointURLInput = ""
+                            customEndpointKeyInput = ""
+                            customEndpointModelInput = ""
+                            addingKeyFor = nil
+                        }
+                    } label: {
+                        Text("Save Endpoint")
+                            .font(.system(size: 10, weight: .medium))
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 24)
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .disabled(customEndpointURLInput.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+
+                    Text("For Ollama, LM Studio, vLLM, and other OpenAI-compatible APIs. API key is optional for local servers.")
+                        .font(.system(size: 9))
+                        .foregroundColor(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
             }
             .padding(cardPadding + 4)
 
+            if provider != .custom {
             Divider()
 
             // Collapsible "How to get an API key"
@@ -726,6 +835,7 @@ struct PopoverView: View {
                     .padding(.bottom, cardPadding)
                 }
             }
+            } // end if provider != .custom
         }
         .background(Color(NSColor.controlBackgroundColor).opacity(0.7))
         .cornerRadius(cardCornerRadius)
@@ -940,14 +1050,18 @@ struct PopoverView: View {
                         .resizable()
                         .aspectRatio(contentMode: .fit)
                         .frame(width: 28, height: 28)
-                } else {
+                } else if onboardingProvider == .claude {
                     Image("ClaudeIcon")
                         .resizable()
                         .aspectRatio(contentMode: .fit)
                         .frame(width: 28, height: 28)
+                } else {
+                    Image(systemName: "server.rack")
+                        .font(.system(size: 22))
+                        .frame(width: 28, height: 28)
                 }
 
-                Text("Add your \(onboardingProvider.displayName) Key")
+                Text(onboardingProvider == .custom ? "Custom Endpoint" : "Add your \(onboardingProvider.displayName) Key")
                     .font(.system(size: 13, weight: .semibold))
 
                 Text("Your API key, your data. We never store or read your content.")
@@ -1022,7 +1136,7 @@ struct PopoverView: View {
                         .font(.system(size: 9))
                         .foregroundColor(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
-                } else {
+                } else if onboardingProvider == .claude {
                     SecureField("sk-ant-...", text: $viewModel.claudeApiKeyInput)
                         .textFieldStyle(.plain)
                         .padding(8)
@@ -1060,10 +1174,58 @@ struct PopoverView: View {
                         .font(.system(size: 9))
                         .foregroundColor(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
+                } else {
+                    // Custom endpoint
+                    TextField("Base URL (e.g. http://localhost:11434/v1)", text: $customEndpointURLInput)
+                        .textFieldStyle(.plain)
+                        .padding(8)
+                        .background(Color(NSColor.textBackgroundColor))
+                        .cornerRadius(6)
+                        .font(.system(size: 11, design: .monospaced))
+
+                    SecureField("API key (optional)", text: $customEndpointKeyInput)
+                        .textFieldStyle(.plain)
+                        .padding(8)
+                        .background(Color(NSColor.textBackgroundColor))
+                        .cornerRadius(6)
+                        .font(.system(size: 11, design: .monospaced))
+
+                    TextField("Model (default: gpt-4o-mini)", text: $customEndpointModelInput)
+                        .textFieldStyle(.plain)
+                        .padding(8)
+                        .background(Color(NSColor.textBackgroundColor))
+                        .cornerRadius(6)
+                        .font(.system(size: 11, design: .monospaced))
+
+                    Button {
+                        viewModel.saveCustomEndpoint(
+                            url: customEndpointURLInput,
+                            apiKey: customEndpointKeyInput,
+                            model: customEndpointModelInput
+                        )
+                        if viewModel.hasCustomEndpoint {
+                            customEndpointURLInput = ""
+                            customEndpointKeyInput = ""
+                            customEndpointModelInput = ""
+                        }
+                    } label: {
+                        Text("Save Endpoint")
+                            .font(.system(size: 10, weight: .medium))
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 24)
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .disabled(customEndpointURLInput.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+
+                    Text("For Ollama, LM Studio, vLLM, and other OpenAI-compatible APIs. API key is optional for local servers.")
+                        .font(.system(size: 9))
+                        .foregroundColor(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
             }
             .padding(cardPadding + 4)
 
+            if onboardingProvider != .custom {
             Divider()
 
             // Collapsible "How to get an API key"
@@ -1106,6 +1268,7 @@ struct PopoverView: View {
                     .padding(.bottom, cardPadding)
                 }
             }
+            } // end if onboardingProvider != .custom
         }
         .background(Color(NSColor.controlBackgroundColor).opacity(0.7))
         .cornerRadius(cardCornerRadius)

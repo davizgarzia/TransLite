@@ -206,7 +206,7 @@ struct PopoverView: View {
 
                         Spacer()
 
-                        Text("\(remaining)/\(quota) today")
+                        Text("\(remaining) left today")
                             .font(.system(size: 10))
                             .foregroundColor(.secondary)
                     }

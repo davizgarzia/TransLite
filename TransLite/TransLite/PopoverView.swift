@@ -186,13 +186,6 @@ struct PopoverView: View {
                         Text("\(remaining) left today")
                             .font(.system(size: 10))
                             .foregroundColor(.secondary)
-
-                        Button("Go Pro") {
-                            viewModel.openProCheckout(source: "plan_card")
-                        }
-                        .font(.system(size: 9, weight: .medium))
-                        .buttonStyle(.borderedProminent)
-                        .controlSize(.small)
                     }
 
                     // Fills up as the daily quota is consumed
@@ -227,6 +220,15 @@ struct PopoverView: View {
                         .controlSize(.small)
                         .disabled(viewModel.isActivatingLicense)
                     } else {
+                        if !showingLicenseInput {
+                            Button("Go Pro") {
+                                viewModel.openProCheckout(source: "license_row")
+                            }
+                            .font(.system(size: 9, weight: .medium))
+                            .buttonStyle(.borderedProminent)
+                            .controlSize(.small)
+                        }
+
                         Button(showingLicenseInput ? "Cancel" : "Add") {
                             withAnimation(.easeInOut(duration: 0.2)) {
                                 showingLicenseInput.toggle()

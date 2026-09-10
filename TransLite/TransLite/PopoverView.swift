@@ -211,7 +211,8 @@ struct PopoverView: View {
                             .foregroundColor(.secondary)
                     }
 
-                    planProgressBar(fraction: Double(remaining) / Double(max(quota, 1)))
+                    // Fills up as the daily quota is consumed
+                    planProgressBar(fraction: Double(quota - remaining) / Double(max(quota, 1)))
                 } else {
                     HStack {
                         Text("License required")

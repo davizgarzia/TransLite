@@ -160,6 +160,15 @@ struct HUDContentView: View {
     @ObservedObject var model: HUDModel
     @State private var isPulsing = false
 
+    /// Card tint communicating the outcome at a glance
+    private var tint: Color {
+        switch model.kind {
+        case .working: return .clear
+        case .success: return .green
+        case .error: return .red
+        }
+    }
+
     var body: some View {
         VStack(spacing: 0) {
             // Status row
@@ -185,7 +194,7 @@ struct HUDContentView: View {
                     case .error:
                         Image(systemName: "exclamationmark.triangle.fill")
                             .font(.system(size: 13))
-                            .foregroundColor(.orange)
+                            .foregroundColor(.red)
                     }
                 }
                 .animation(.easeInOut(duration: 0.18), value: model.kind)
@@ -223,7 +232,15 @@ struct HUDContentView: View {
             }
         }
         .fixedSize()
-        .background(.thickMaterial, in: RoundedRectangle(cornerRadius: 12))
+        .background(
+            ZStack {
+                RoundedRectangle(cornerRadius: 12)
+                    .fill(.thickMaterial)
+                RoundedRectangle(cornerRadius: 12)
+                    .fill(tint.opacity(0.18))
+            }
+        )
+        .animation(.easeInOut(duration: 0.25), value: model.kind)
         .scaleEffect(model.visible ? 1 : 0.9)
         .opacity(model.visible ? 1 : 0)
         .animation(.easeInOut(duration: 0.18), value: model.message)

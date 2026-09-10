@@ -1,12 +1,19 @@
 import AppKit
 import SwiftUI
 
+/// Observable state driving the HUD content and its animations
+final class HUDModel: ObservableObject {
+    @Published var message: String = ""
+    @Published var visible: Bool = false
+}
+
 /// Floating HUD window that shows translation status
 final class TranslationHUD {
     static let shared = TranslationHUD()
 
     private var window: NSWindow?
     private var hostingView: NSHostingView<HUDContentView>?
+    private let model = HUDModel()
 
     private init() {}
 
@@ -17,22 +24,42 @@ final class TranslationHUD {
         }
     }
 
-    /// Hides the HUD
+    /// Hides the HUD with a quick fade/scale-out
     func hide() {
         DispatchQueue.main.async { [weak self] in
-            self?.window?.animator().alphaValue = 0
+            guard let self else { return }
+            withAnimation(.easeIn(duration: 0.15)) {
+                self.model.visible = false
+            }
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
-                self?.window?.orderOut(nil)
-                self?.window = nil
+                self.window?.orderOut(nil)
+                self.window = nil
+                self.hostingView = nil
             }
         }
     }
 
-    /// Updates the message while HUD is showing
+    /// Updates the message while HUD is showing, cross-fading the text and
+    /// animating the window to the new content size
     func update(message: String) {
         DispatchQueue.main.async { [weak self] in
-            if let hostingView = self?.hostingView {
-                hostingView.rootView = HUDContentView(message: message)
+            guard let self else { return }
+            self.model.message = message
+
+            // Give SwiftUI a runloop pass to lay out the new text, then
+            // animate the window frame to fit it, keeping it centered
+            DispatchQueue.main.async {
+                guard let window = self.window, let hostingView = self.hostingView else { return }
+                let newSize = hostingView.fittingSize
+                var frame = window.frame
+                frame.origin.x = frame.midX - newSize.width / 2
+                frame.origin.y = frame.midY - newSize.height / 2
+                frame.size = newSize
+                NSAnimationContext.runAnimationGroup { context in
+                    context.duration = 0.2
+                    context.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
+                    window.animator().setFrame(frame, display: true)
+                }
             }
         }
     }
@@ -41,8 +68,11 @@ final class TranslationHUD {
         // Close existing window if any
         window?.orderOut(nil)
 
+        model.message = message
+        model.visible = false
+
         // Create the SwiftUI content
-        let contentView = HUDContentView(message: message)
+        let contentView = HUDContentView(model: model)
         hostingView = NSHostingView(rootView: contentView)
 
         // Let the view size itself to fit content
@@ -73,18 +103,21 @@ final class TranslationHUD {
             hudWindow.setFrameOrigin(NSPoint(x: x, y: y))
         }
 
-        // Show with fade in
-        hudWindow.alphaValue = 0
         hudWindow.orderFront(nil)
-        hudWindow.animator().alphaValue = 1
-
         self.window = hudWindow
+
+        // Animate the content in (fade + scale) once mounted
+        DispatchQueue.main.async { [weak self] in
+            withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                self?.model.visible = true
+            }
+        }
     }
 }
 
 /// SwiftUI view for HUD content
 struct HUDContentView: View {
-    let message: String
+    @ObservedObject var model: HUDModel
     @State private var isPulsing = false
 
     var body: some View {
@@ -101,14 +134,18 @@ struct HUDContentView: View {
                     isPulsing = true
                 }
 
-            Text(message)
+            Text(model.message)
                 .font(.system(size: 14, weight: .medium))
                 .foregroundColor(.white)
                 .fixedSize(horizontal: true, vertical: false)
+                .contentTransition(.opacity)
         }
         .padding(.horizontal, 20)
         .padding(.vertical, 16)
         .background(.thickMaterial, in: RoundedRectangle(cornerRadius: 12))
+        .scaleEffect(model.visible ? 1 : 0.9)
+        .opacity(model.visible ? 1 : 0)
+        .animation(.easeInOut(duration: 0.18), value: model.message)
         .environment(\.colorScheme, .dark)
     }
 }

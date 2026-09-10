@@ -549,7 +549,11 @@ final class AppViewModel: ObservableObject {
                         }
                     }
 
-                    if case .proxy = backend, let remaining = proxy.quotaRemaining {
+                    // Free always sees the counter; Pro only near the
+                    // fair-use cap
+                    if case .proxy(let licenseKey) = backend,
+                       let remaining = proxy.quotaRemaining,
+                       licenseKey == nil || remaining < 50 {
                         statusMessage += " · \(remaining) left today"
                     }
 
@@ -683,7 +687,11 @@ final class AppViewModel: ObservableObject {
                         }
                     }
 
-                    if case .proxy = backend, let remaining = proxy.quotaRemaining {
+                    // Free always sees the counter; Pro only near the
+                    // fair-use cap
+                    if case .proxy(let licenseKey) = backend,
+                       let remaining = proxy.quotaRemaining,
+                       licenseKey == nil || remaining < 50 {
                         statusMessage += " · \(remaining) left today"
                     }
 

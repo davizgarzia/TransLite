@@ -39,9 +39,9 @@ struct PopoverView: View {
                 } else if showingShortcutConfig {
                     shortcutConfigCard
                 } else {
-                    // BYOK licensees need no plan card; everyone else sees
-                    // their plan state (free, Pro, or license required)
-                    if viewModel.licenseKind != .byok {
+                    // Paid tiers wear the header badge instead of a plan
+                    // card; only free/blocked states show it
+                    if viewModel.licenseKind == nil {
                         planSection
                     }
 
@@ -102,6 +102,17 @@ struct PopoverView: View {
             Text("TransLite")
                 .font(.system(size: 13, weight: .semibold))
 
+            // Both paid tiers (Pro subscription and BYOK) wear the badge
+            if viewModel.isLicensed {
+                Text("PRO")
+                    .font(.system(size: 8, weight: .bold))
+                    .foregroundColor(.accentColor)
+                    .padding(.horizontal, 5)
+                    .padding(.vertical, 2)
+                    .background(Color.accentColor.opacity(0.15))
+                    .cornerRadius(4)
+            }
+
             Spacer()
 
             Button {
@@ -159,30 +170,13 @@ struct PopoverView: View {
     }
 
     private var planSection: some View {
-        let isPro = viewModel.licenseKind == .pro
-        let limits = isPro ? ProxyClient.shared.proLimits : viewModel.freeLimits
-        let quota = limits.dailyQuota ?? 20
+        let quota = viewModel.freeLimits.dailyQuota ?? 20
         let remaining = viewModel.freeQuotaRemaining ?? quota
 
         return VStack(spacing: 0) {
             // Plan status section
             VStack(spacing: 8) {
-                if isPro {
-                    // The daily cap is a fair-use guard, not a feature:
-                    // stay quiet about it unless the user gets close
-                    HStack(alignment: .firstTextBaseline) {
-                        Text("Pro plan")
-                            .font(.system(size: 13, weight: .semibold))
-
-                        Spacer()
-
-                        if let proRemaining = viewModel.freeQuotaRemaining, proRemaining < 50 {
-                            Text("\(proRemaining) left today")
-                                .font(.system(size: 10))
-                                .foregroundColor(.secondary)
-                        }
-                    }
-                } else if viewModel.usesFreeTier {
+                if viewModel.usesFreeTier {
                     HStack(alignment: .firstTextBaseline) {
                         Text("Free plan")
                             .font(.system(size: 13, weight: .semibold))
@@ -215,9 +209,6 @@ struct PopoverView: View {
             .background(byokBlocked ? Color.red.opacity(0.15) : Color.accentColor.opacity(0.15))
 
             // License section
-            // Pro subscribers already activated their license; only free
-            // and blocked states need the purchase/activation row
-            if !isPro {
             VStack(spacing: 0) {
                 // License row
                 HStack {
@@ -236,15 +227,6 @@ struct PopoverView: View {
                         .controlSize(.small)
                         .disabled(viewModel.isActivatingLicense)
                     } else {
-                        if !showingLicenseInput {
-                            Button("Buy License") {
-                                viewModel.openPurchasePage()
-                            }
-                            .font(.system(size: 9, weight: .medium))
-                            .buttonStyle(.borderedProminent)
-                            .controlSize(.small)
-                        }
-
                         Button(showingLicenseInput ? "Cancel" : "Add") {
                             withAnimation(.easeInOut(duration: 0.2)) {
                                 showingLicenseInput.toggle()
@@ -274,7 +256,6 @@ struct PopoverView: View {
                 }
             }
             .background(byokBlocked ? Color.red.opacity(0.1) : Color.accentColor.opacity(0.1))
-            }
         }
         .cornerRadius(cardCornerRadius)
     }

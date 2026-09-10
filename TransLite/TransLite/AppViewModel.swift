@@ -116,6 +116,9 @@ final class AppViewModel: ObservableObject {
     }
     @Published var statusMessage: String = ""
     @Published var isTranslating: Bool = false
+    /// Free-tier translations left today, for the plan card's progress bar.
+    /// nil = no proxied request yet today (assume full quota).
+    @Published var freeQuotaRemaining: Int? = ProxyClient.shared.quotaRemaining
     @Published var hasAccessibilityPermission: Bool = false
 
     // Trial & License
@@ -558,6 +561,10 @@ final class AppViewModel: ObservableObject {
                 AnalyticsClient.track("translation_failed", properties: failedProperties)
             }
 
+            if case .freeTier = backend {
+                freeQuotaRemaining = proxy.quotaRemaining
+            }
+
             hud.hide()
             isTranslating = false
         }
@@ -686,6 +693,10 @@ final class AppViewModel: ObservableObject {
                 failedProperties["duration_ms"] = .integer(Self.durationMilliseconds(since: startedAt))
                 failedProperties["reason"] = .string(Self.analyticsErrorCategory(error))
                 AnalyticsClient.track("improvement_failed", properties: failedProperties)
+            }
+
+            if case .freeTier = backend {
+                freeQuotaRemaining = proxy.quotaRemaining
             }
 
             hud.hide()

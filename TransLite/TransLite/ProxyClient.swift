@@ -24,10 +24,28 @@ final class ProxyClient {
     private(set) var freeLimits = TierLimits(maxChars: 1000, dailyQuota: 25, allowedTargets: ["English"])
 
     /// Translations left today for this device, from the last response's
-    /// X-Quota-Remaining header. nil until the first proxied request.
-    private(set) var quotaRemaining: Int?
+    /// X-Quota-Remaining header. Persisted per UTC day (the server's reset
+    /// boundary); nil until the first proxied request of the day.
+    private(set) var quotaRemaining: Int? {
+        didSet {
+            guard let value = quotaRemaining else { return }
+            UserDefaults.standard.set(value, forKey: "freeQuotaRemaining")
+            UserDefaults.standard.set(Self.utcDay(), forKey: "freeQuotaRemainingDay")
+        }
+    }
+
+    private static func utcDay() -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd"
+        formatter.timeZone = TimeZone(identifier: "UTC")
+        return formatter.string(from: Date())
+    }
 
     private init() {
+        if UserDefaults.standard.string(forKey: "freeQuotaRemainingDay") == Self.utcDay(),
+           let cachedRemaining = UserDefaults.standard.object(forKey: "freeQuotaRemaining") as? Int {
+            quotaRemaining = cachedRemaining
+        }
         if let cachedMaxChars = UserDefaults.standard.object(forKey: "freeTierMaxChars") as? Int {
             freeLimits.maxChars = cachedMaxChars
         }
@@ -135,7 +153,9 @@ final class ProxyClient {
 
         switch decoded.error.code {
         case "text_too_long": throw ProxyError.textTooLong(decoded.error.message)
-        case "quota_exceeded": throw ProxyError.quotaExceeded(decoded.error.message)
+        case "quota_exceeded":
+            quotaRemaining = 0
+            throw ProxyError.quotaExceeded(decoded.error.message)
         case "language_not_allowed": throw ProxyError.languageNotAllowed(decoded.error.message)
         case "upstream_busy": throw ProxyError.busy(decoded.error.message)
         default: throw ProxyError.apiError(decoded.error.message)

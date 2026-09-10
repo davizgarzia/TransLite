@@ -157,53 +157,67 @@ struct PopoverView: View {
         trialExpired && !viewModel.usesFreeTier
     }
 
+    /// Thin progress bar shared by the trial countdown and the free-plan
+    /// daily quota.
+    private func planProgressBar(fraction: Double) -> some View {
+        GeometryReader { geometry in
+            ZStack(alignment: .leading) {
+                RoundedRectangle(cornerRadius: 2)
+                    .fill(Color.accentColor.opacity(0.3))
+                    .frame(height: 4)
+
+                RoundedRectangle(cornerRadius: 2)
+                    .fill(Color.accentColor)
+                    .frame(width: geometry.size.width * max(0, min(1, fraction)), height: 4)
+            }
+        }
+        .frame(height: 4)
+    }
+
     private var trialSection: some View {
-        VStack(spacing: 0) {
+        let quota = ProxyClient.shared.freeLimits.dailyQuota ?? 25
+        let remaining = viewModel.freeQuotaRemaining ?? quota
+
+        return VStack(spacing: 0) {
             // Plan status section
             VStack(spacing: 8) {
-                HStack {
-                    VStack(alignment: .leading, spacing: 2) {
-                        if !trialExpired {
-                            // Grandfathered trial still running
-                            Text("\(trialDaysRemaining) days left in trial")
-                                .font(.system(size: 11, weight: .medium))
-                                .foregroundColor(.secondary)
-                        } else if viewModel.usesFreeTier {
-                            Text("Free plan")
-                                .font(.system(size: 11, weight: .semibold))
-                            Text("\(ProxyClient.shared.freeLimits.dailyQuota ?? 25)/day to English — license removes limits")
-                                .font(.system(size: 9))
-                                .foregroundColor(.secondary)
-                        } else {
-                            Text("License required")
-                                .font(.system(size: 11, weight: .semibold))
-                        }
-                    }
-
-                    Spacer()
-
-                    Button {
-                        viewModel.openPurchasePage()
-                    } label: {
-                        UpgradeButton(text: trialExpired ? "Buy License" : "Upgrade", isExpired: byokBlocked)
-                    }
-                    .buttonStyle(.plain)
-                }
-
-                // Progress bar (only while a trial is running)
                 if !trialExpired {
-                    GeometryReader { geometry in
-                        ZStack(alignment: .leading) {
-                            RoundedRectangle(cornerRadius: 2)
-                                .fill(Color.accentColor.opacity(0.3))
-                                .frame(height: 4)
+                    // Grandfathered trial still running
+                    HStack {
+                        Text("\(trialDaysRemaining) days left in trial")
+                            .font(.system(size: 11, weight: .medium))
+                            .foregroundColor(.secondary)
 
-                            RoundedRectangle(cornerRadius: 2)
-                                .fill(Color.accentColor)
-                                .frame(width: geometry.size.width * trialProgress, height: 4)
+                        Spacer()
+
+                        Button {
+                            viewModel.openPurchasePage()
+                        } label: {
+                            UpgradeButton(text: "Upgrade", isExpired: false)
                         }
+                        .buttonStyle(.plain)
                     }
-                    .frame(height: 4)
+
+                    planProgressBar(fraction: trialProgress)
+                } else if viewModel.usesFreeTier {
+                    HStack(alignment: .firstTextBaseline) {
+                        Text("Free plan")
+                            .font(.system(size: 13, weight: .semibold))
+
+                        Spacer()
+
+                        Text("\(remaining)/\(quota) today")
+                            .font(.system(size: 10))
+                            .foregroundColor(.secondary)
+                    }
+
+                    planProgressBar(fraction: Double(remaining) / Double(max(quota, 1)))
+                } else {
+                    HStack {
+                        Text("License required")
+                            .font(.system(size: 13, weight: .semibold))
+                        Spacer()
+                    }
                 }
             }
             .padding(10)
@@ -228,7 +242,16 @@ struct PopoverView: View {
                         .controlSize(.small)
                         .disabled(viewModel.isActivatingLicense)
                     } else {
-                        Button(showingLicenseInput ? "Cancel" : "Enter") {
+                        if trialExpired && !showingLicenseInput {
+                            Button("Buy License") {
+                                viewModel.openPurchasePage()
+                            }
+                            .font(.system(size: 9, weight: .medium))
+                            .buttonStyle(.borderedProminent)
+                            .controlSize(.small)
+                        }
+
+                        Button(showingLicenseInput ? "Cancel" : "Add") {
                             withAnimation(.easeInOut(duration: 0.2)) {
                                 showingLicenseInput.toggle()
                                 if !showingLicenseInput {

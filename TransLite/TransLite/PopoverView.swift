@@ -1284,39 +1284,50 @@ private struct DebugMenu: View {
     @ObservedObject var viewModel: AppViewModel
     @State private var isHovered = false
 
-    private var trialInfo: String {
+    private var stateInfo: String {
         let info = TrialManager.shared.debugInfo
-        return "Start: \(info.startDate)\nLast: \(info.lastUsed)\nStatus: \(info.status)"
+        var keys: [String] = []
+        if viewModel.hasAPIKey { keys.append("openai") }
+        if viewModel.hasClaudeAPIKey { keys.append("claude") }
+        let quotaLeft = viewModel.freeQuotaRemaining.map(String.init) ?? "full?"
+        let quota = viewModel.freeLimits.dailyQuota.map(String.init) ?? "∞"
+        return """
+        Status: \(info.status)
+        Keys: \(keys.isEmpty ? "none (free tier)" : keys.joined(separator: ", "))
+        Quota left: \(quotaLeft)/\(quota)
+        Trial start: \(info.startDate)
+        """
     }
+
+    private static let cachedFreeTierDefaults = [
+        "freeQuotaRemaining", "freeQuotaRemainingDay",
+        "freeTierMaxChars", "freeTierDailyQuota", "freeTierTargets"
+    ]
 
     var body: some View {
         Menu {
             Section("Current State") {
-                Text(trialInfo)
+                Text(stateInfo)
                     .font(.system(size: 10, design: .monospaced))
             }
 
             Divider()
 
-            Section("Trial") {
+            Section("Plan") {
+                Button("Free Plan (no trial)") {
+                    TrialManager.shared.debugClearTrial()
+                    viewModel.refreshTrialStatus()
+                }
                 Button("Grandfathered Trial (7 days)") {
                     TrialManager.shared.debugResetTrial()
                     viewModel.refreshTrialStatus()
                 }
-                Button("No Trial (Free plan)") {
-                    TrialManager.shared.debugClearTrial()
-                    viewModel.refreshTrialStatus()
-                }
-                Button("Expire Trial") {
-                    TrialManager.shared.debugExpireTrial()
-                    viewModel.refreshTrialStatus()
-                }
-                Button("Set 1 Day Left") {
+                Button("Grandfathered Trial (1 day left)") {
                     TrialManager.shared.debugSetDaysLeft(1)
                     viewModel.refreshTrialStatus()
                 }
-                Button("Set 3 Days Left") {
-                    TrialManager.shared.debugSetDaysLeft(3)
+                Button("Expired Trial") {
+                    TrialManager.shared.debugExpireTrial()
                     viewModel.refreshTrialStatus()
                 }
             }
@@ -1324,15 +1335,31 @@ private struct DebugMenu: View {
             Divider()
 
             Section("License") {
-                Button("Add Fake License") {
-                    Task {
-                        _ = await TrialManager.shared.activateLicense("DEBUG-LICENSE-KEY")
-                        viewModel.refreshTrialStatus()
-                    }
+                Button("Activate Fake License (offline)") {
+                    TrialManager.shared.debugActivateLicense()
+                    viewModel.refreshTrialStatus()
                 }
                 Button("Remove License") {
                     TrialManager.shared.removeLicense()
                     viewModel.refreshTrialStatus()
+                }
+            }
+
+            Divider()
+
+            // Display-only: the real counter lives server-side and
+            // resyncs on the next translation
+            Section("Free Quota (display)") {
+                Button("Set 3 Left Today") {
+                    viewModel.freeQuotaRemaining = 3
+                }
+                Button("Set 0 Left Today") {
+                    viewModel.freeQuotaRemaining = 0
+                }
+                Button("Reset Quota Display") {
+                    viewModel.freeQuotaRemaining = nil
+                    UserDefaults.standard.removeObject(forKey: "freeQuotaRemaining")
+                    UserDefaults.standard.removeObject(forKey: "freeQuotaRemainingDay")
                 }
             }
 
@@ -1348,8 +1375,13 @@ private struct DebugMenu: View {
                     UserDefaults.standard.set(false, forKey: "hasSeenWelcome")
                     UserDefaults.standard.set(false, forKey: "onboardingComplete")
 
-                    // A fresh install has no trial and no license
+                    // A fresh install has no trial, no license and no
+                    // cached free-tier state
                     TrialManager.shared.debugClearTrial()
+                    for key in Self.cachedFreeTierDefaults {
+                        UserDefaults.standard.removeObject(forKey: key)
+                    }
+                    viewModel.freeQuotaRemaining = nil
                     viewModel.refreshTrialStatus()
 
                     // Force back to welcome screen

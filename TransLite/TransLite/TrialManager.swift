@@ -307,6 +307,12 @@ final class TrialManager {
         return (start, last, statusStr)
     }
 
+    /// Saves a fake license locally WITHOUT LemonSqueezy validation —
+    /// the real activateLicense would reject any non-purchased key.
+    func debugActivateLicense() {
+        saveLicenseKey("DEBUG-LICENSE-KEY")
+    }
+
     /// Simulates a fresh install: no trial ever started, no license —
     /// the state every new (free-tier) user lands in.
     func debugClearTrial() {

@@ -436,6 +436,7 @@ struct PopoverView: View {
             }
             .font(.system(size: 9, weight: .medium))
             .buttonStyle(.bordered)
+            .tint(.orange)
             .controlSize(.small)
         }
         .padding(.horizontal, 8)

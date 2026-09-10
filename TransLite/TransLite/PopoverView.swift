@@ -150,19 +150,33 @@ struct PopoverView: View {
 
     // MARK: - Trial Section
 
+    /// True only when BYOK is actually blocked: keys configured but no
+    /// license and no active (grandfathered) trial. Free-tier users are
+    /// never in a blocked state.
+    private var byokBlocked: Bool {
+        trialExpired && !viewModel.usesFreeTier
+    }
+
     private var trialSection: some View {
         VStack(spacing: 0) {
-            // Trial status section
+            // Plan status section
             VStack(spacing: 8) {
                 HStack {
                     VStack(alignment: .leading, spacing: 2) {
-                        if trialExpired {
-                            Text("Trial Expired")
-                                .font(.system(size: 11, weight: .semibold))
-                        } else {
+                        if !trialExpired {
+                            // Grandfathered trial still running
                             Text("\(trialDaysRemaining) days left in trial")
                                 .font(.system(size: 11, weight: .medium))
                                 .foregroundColor(.secondary)
+                        } else if viewModel.usesFreeTier {
+                            Text("Free plan")
+                                .font(.system(size: 11, weight: .semibold))
+                            Text("License unlocks your own API key")
+                                .font(.system(size: 9))
+                                .foregroundColor(.secondary)
+                        } else {
+                            Text("License required")
+                                .font(.system(size: 11, weight: .semibold))
                         }
                     }
 
@@ -171,27 +185,29 @@ struct PopoverView: View {
                     Button {
                         viewModel.openPurchasePage()
                     } label: {
-                        UpgradeButton(text: trialExpired ? "Buy License" : "Upgrade", isExpired: trialExpired)
+                        UpgradeButton(text: trialExpired ? "Buy License" : "Upgrade", isExpired: byokBlocked)
                     }
                     .buttonStyle(.plain)
                 }
 
-                // Progress bar (always visible)
-                GeometryReader { geometry in
-                    ZStack(alignment: .leading) {
-                        RoundedRectangle(cornerRadius: 2)
-                            .fill(trialExpired ? Color.red.opacity(0.3) : Color.accentColor.opacity(0.3))
-                            .frame(height: 4)
+                // Progress bar (only while a trial is running)
+                if !trialExpired {
+                    GeometryReader { geometry in
+                        ZStack(alignment: .leading) {
+                            RoundedRectangle(cornerRadius: 2)
+                                .fill(Color.accentColor.opacity(0.3))
+                                .frame(height: 4)
 
-                        RoundedRectangle(cornerRadius: 2)
-                            .fill(trialExpired ? Color.red : Color.accentColor)
-                            .frame(width: geometry.size.width * (trialExpired ? 1.0 : trialProgress), height: 4)
+                            RoundedRectangle(cornerRadius: 2)
+                                .fill(Color.accentColor)
+                                .frame(width: geometry.size.width * trialProgress, height: 4)
+                        }
                     }
+                    .frame(height: 4)
                 }
-                .frame(height: 4)
             }
             .padding(10)
-            .background(trialExpired ? Color.red.opacity(0.15) : Color.accentColor.opacity(0.15))
+            .background(byokBlocked ? Color.red.opacity(0.15) : Color.accentColor.opacity(0.15))
 
             // License section
             VStack(spacing: 0) {
@@ -240,7 +256,7 @@ struct PopoverView: View {
                         .padding(.bottom, 10)
                 }
             }
-            .background(trialExpired ? Color.red.opacity(0.1) : Color.accentColor.opacity(0.1))
+            .background(byokBlocked ? Color.red.opacity(0.1) : Color.accentColor.opacity(0.1))
         }
         .cornerRadius(cardCornerRadius)
     }
@@ -1117,7 +1133,7 @@ struct PopoverView: View {
                 VStack(spacing: 2) {
                     Text("Skip — use Free plan")
                         .font(.system(size: 10, weight: .medium))
-                    Text("\(ProxyClient.shared.freeLimits.dailyQuota ?? 50) translations/day, no API key needed")
+                    Text("\(ProxyClient.shared.freeLimits.dailyQuota ?? 25) translations/day, no API key needed")
                         .font(.system(size: 9))
                         .foregroundColor(.secondary)
                 }

@@ -21,7 +21,7 @@ final class ProxyClient {
         var dailyQuota: Int?
     }
 
-    private(set) var freeLimits = TierLimits(maxChars: 1000, dailyQuota: 50)
+    private(set) var freeLimits = TierLimits(maxChars: 1000, dailyQuota: 25)
 
     /// Translations left today for this device, from the last response's
     /// X-Quota-Remaining header. nil until the first proxied request.

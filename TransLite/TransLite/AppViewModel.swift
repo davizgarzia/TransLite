@@ -397,9 +397,9 @@ final class AppViewModel: ObservableObject {
             return .freeTier
         }
 
-        // BYOK requires an active trial or license
+        // BYOK requires a license (or a grandfathered trial still running)
         guard trialManager.canUseApp else {
-            statusMessage = "Trial expired - please activate license"
+            statusMessage = "License required to use your own API key"
             return nil
         }
 

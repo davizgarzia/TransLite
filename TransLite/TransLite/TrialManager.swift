@@ -35,11 +35,10 @@ final class TrialManager {
             return .expired
         }
 
-        // Calculate days remaining
+        // Trials are no longer started for new installs — the free tier
+        // replaced them. Trials already in progress are honored until expiry.
         guard let startDate = trialStartDate else {
-            // First launch - start trial
-            startTrial()
-            return .active(daysRemaining: trialDays)
+            return .expired
         }
 
         let daysPassed = Calendar.current.dateComponents([.day], from: startDate, to: Date()).day ?? 0
@@ -52,7 +51,8 @@ final class TrialManager {
         }
     }
 
-    /// Whether the app can be used (trial active or licensed)
+    /// Whether BYOK can be used (licensed, or a grandfathered trial still
+    /// active). The free tier is never gated by this.
     var canUseApp: Bool {
         switch status {
         case .active, .licensed:
@@ -81,12 +81,6 @@ final class TrialManager {
         guard let lastUsed = lastUsedDate else { return false }
         // If current date is before last used date, user manipulated system clock
         return Date() < lastUsed
-    }
-
-    private func startTrial() {
-        let now = Date()
-        saveDate(now, forKey: trialStartKey)
-        saveDate(now, forKey: lastUsedKey)
     }
 
     // MARK: - License Management

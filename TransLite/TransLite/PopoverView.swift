@@ -167,9 +167,24 @@ struct PopoverView: View {
         return VStack(spacing: 0) {
             // Plan status section
             VStack(spacing: 8) {
-                if isPro || viewModel.usesFreeTier {
+                if isPro {
+                    // The daily cap is a fair-use guard, not a feature:
+                    // stay quiet about it unless the user gets close
                     HStack(alignment: .firstTextBaseline) {
-                        Text(isPro ? "Pro plan" : "Free plan")
+                        Text("Pro plan")
+                            .font(.system(size: 13, weight: .semibold))
+
+                        Spacer()
+
+                        if let proRemaining = viewModel.freeQuotaRemaining, proRemaining < 50 {
+                            Text("\(proRemaining) left today")
+                                .font(.system(size: 10))
+                                .foregroundColor(.secondary)
+                        }
+                    }
+                } else if viewModel.usesFreeTier {
+                    HStack(alignment: .firstTextBaseline) {
+                        Text("Free plan")
                             .font(.system(size: 13, weight: .semibold))
 
                         Spacer()
@@ -178,14 +193,12 @@ struct PopoverView: View {
                             .font(.system(size: 10))
                             .foregroundColor(.secondary)
 
-                        if !isPro {
-                            Button("Go Pro") {
-                                viewModel.openProCheckout(source: "plan_card")
-                            }
-                            .font(.system(size: 9, weight: .medium))
-                            .buttonStyle(.borderedProminent)
-                            .controlSize(.small)
+                        Button("Go Pro") {
+                            viewModel.openProCheckout(source: "plan_card")
                         }
+                        .font(.system(size: 9, weight: .medium))
+                        .buttonStyle(.borderedProminent)
+                        .controlSize(.small)
                     }
 
                     // Fills up as the daily quota is consumed

@@ -151,7 +151,8 @@ struct HUDContentView: View {
     @State private var isPulsing = false
 
     var body: some View {
-        VStack(spacing: 8) {
+        VStack(spacing: 0) {
+            // Status row
             HStack(spacing: 12) {
                 Image("TransLiteIcon")
                     .resizable()
@@ -173,10 +174,14 @@ struct HUDContentView: View {
             }
             .padding(.horizontal, 20)
             .padding(.vertical, 16)
-            .background(.thickMaterial, in: RoundedRectangle(cornerRadius: 12))
+            .frame(maxWidth: .infinity)
 
-            // Rotating usage tip shown while the user waits
+            // Rotating usage tip, centered, sharing the card's width
             if let tip = model.tip {
+                Rectangle()
+                    .fill(.white.opacity(0.1))
+                    .frame(height: 1)
+
                 HStack(spacing: 6) {
                     Image(systemName: "lightbulb.fill")
                         .font(.system(size: 9))
@@ -187,12 +192,14 @@ struct HUDContentView: View {
                         .fixedSize(horizontal: true, vertical: false)
                         .contentTransition(.opacity)
                 }
-                .padding(.horizontal, 12)
-                .padding(.vertical, 7)
-                .background(.thickMaterial, in: RoundedRectangle(cornerRadius: 8))
+                .padding(.horizontal, 16)
+                .padding(.vertical, 8)
+                .frame(maxWidth: .infinity)
                 .animation(.easeInOut(duration: 0.25), value: tip)
             }
         }
+        .fixedSize()
+        .background(.thickMaterial, in: RoundedRectangle(cornerRadius: 12))
         .scaleEffect(model.visible ? 1 : 0.9)
         .opacity(model.visible ? 1 : 0)
         .animation(.easeInOut(duration: 0.18), value: model.message)

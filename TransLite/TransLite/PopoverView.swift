@@ -1244,8 +1244,12 @@ private struct DebugMenu: View {
             Divider()
 
             Section("Trial") {
-                Button("Reset Trial (7 days)") {
+                Button("Grandfathered Trial (7 days)") {
                     TrialManager.shared.debugResetTrial()
+                    viewModel.refreshTrialStatus()
+                }
+                Button("No Trial (Free plan)") {
+                    TrialManager.shared.debugClearTrial()
                     viewModel.refreshTrialStatus()
                 }
                 Button("Expire Trial") {
@@ -1280,7 +1284,7 @@ private struct DebugMenu: View {
             Divider()
 
             Section("Onboarding") {
-                Button("Reset Everything") {
+                Button("Reset Everything (Fresh Install)") {
                     // Delete API keys first (it sets some flags)
                     viewModel.deleteAPIKey()
                     viewModel.deleteClaudeAPIKey()
@@ -1289,8 +1293,8 @@ private struct DebugMenu: View {
                     UserDefaults.standard.set(false, forKey: "hasSeenWelcome")
                     UserDefaults.standard.set(false, forKey: "onboardingComplete")
 
-                    // Reset trial
-                    TrialManager.shared.debugResetTrial()
+                    // A fresh install has no trial and no license
+                    TrialManager.shared.debugClearTrial()
                     viewModel.refreshTrialStatus()
 
                     // Force back to welcome screen

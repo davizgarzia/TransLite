@@ -257,6 +257,15 @@ final class TrialManager {
         return string
     }
 
+    private func deleteString(forKey key: String) {
+        let query: [String: Any] = [
+            kSecClass as String: kSecClassGenericPassword,
+            kSecAttrService as String: service,
+            kSecAttrAccount as String: key
+        ]
+        SecItemDelete(query as CFDictionary)
+    }
+
     private func saveLicenseKey(_ key: String) {
         saveString(key, forKey: licenseKey)
     }
@@ -296,6 +305,14 @@ final class TrialManager {
         }
 
         return (start, last, statusStr)
+    }
+
+    /// Simulates a fresh install: no trial ever started, no license —
+    /// the state every new (free-tier) user lands in.
+    func debugClearTrial() {
+        deleteString(forKey: trialStartKey)
+        deleteString(forKey: lastUsedKey)
+        deleteLicenseKey()
     }
 
     func debugResetTrial() {

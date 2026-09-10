@@ -102,9 +102,9 @@ struct PopoverView: View {
             Text("TransLite")
                 .font(.system(size: 13, weight: .semibold))
 
-            // Both paid tiers (Pro subscription and BYOK) wear the badge
-            if viewModel.isLicensed {
-                Text("PRO")
+            // Each paid tier wears its own badge
+            if let kind = viewModel.licenseKind {
+                Text(kind == .pro ? "PRO" : "BYOK")
                     .font(.system(size: 8, weight: .bold))
                     .foregroundColor(.accentColor)
                     .padding(.horizontal, 5)

@@ -48,7 +48,7 @@ struct PopoverView: View {
                 onboardingWelcomeCard
 
             case .permissions:
-                onboardingPermissionsCard
+                onboardingPermissionsSection
 
             case .complete:
                 if let provider = addingKeyFor {
@@ -1078,31 +1078,37 @@ struct PopoverView: View {
 
             Divider()
 
-            // Buttons
-            VStack(spacing: 8) {
-                Button {
-                    viewModel.enableAutoPasteWithPermissions()
-                } label: {
-                    Text("Enable Auto-Paste")
-                        .font(.system(size: 10, weight: .medium))
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 24)
-                }
-                .buttonStyle(.borderedProminent)
-
-                Button {
-                    viewModel.skipAutoPaste()
-                } label: {
-                    Text("Skip for now")
-                        .font(.system(size: 10))
-                        .foregroundColor(.secondary)
-                }
-                .buttonStyle(.plain)
+            // Primary action (sized like the welcome card's Get Started)
+            Button {
+                viewModel.enableAutoPasteWithPermissions()
+            } label: {
+                Text("Enable Auto-Paste")
+                    .font(.system(size: 11, weight: .medium))
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 28)
             }
+            .buttonStyle(.borderedProminent)
             .padding(cardPadding + 4)
         }
         .background(Color(NSColor.controlBackgroundColor).opacity(0.7))
         .cornerRadius(cardCornerRadius)
+    }
+
+    private var onboardingPermissionsSection: some View {
+        VStack(spacing: 10) {
+            onboardingPermissionsCard
+
+            // Secondary action outside the card, centered
+            Button {
+                viewModel.skipAutoPaste()
+            } label: {
+                Text("Skip for now")
+                    .font(.system(size: 10))
+                    .foregroundColor(.secondary)
+            }
+            .buttonStyle(.plain)
+            .frame(maxWidth: .infinity)
+        }
     }
 
     private func shortcutBadge(_ text: String) -> some View {

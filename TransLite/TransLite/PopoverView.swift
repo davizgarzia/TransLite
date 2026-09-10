@@ -308,14 +308,24 @@ struct PopoverView: View {
                     .font(.system(size: 11))
                     .foregroundColor(.secondary)
                 Spacer()
-                Picker("", selection: $viewModel.targetLanguage) {
+                // Menu instead of Picker so plan-locked languages can be
+                // individually disabled (grayed out, not selectable)
+                Menu {
                     ForEach(TargetLanguage.allCases, id: \.self) { language in
-                        Text(language.displayName + (isLanguageLocked(language) ? "  🔒" : ""))
-                            .tag(language)
+                        Button {
+                            viewModel.targetLanguage = language
+                        } label: {
+                            if language == viewModel.targetLanguage {
+                                Label(language.displayName, systemImage: "checkmark")
+                            } else {
+                                Text(language.displayName)
+                            }
+                        }
+                        .disabled(isLanguageLocked(language))
                     }
+                } label: {
+                    Text(viewModel.targetLanguage.displayName)
                 }
-                .labelsHidden()
-                .pickerStyle(.menu)
                 .frame(width: 100)
             }
             .padding(.horizontal, cardPadding)

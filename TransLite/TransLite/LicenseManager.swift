@@ -16,11 +16,9 @@ enum LicenseKind: String {
 final class LicenseManager {
     static let shared = LicenseManager()
 
-    // LemonSqueezy product ids, used to tell a Pro subscription key from a
-    // BYOK lifetime key. TODO: set the real Pro product id from the
-    // LemonSqueezy dashboard. While it is 0, every key resolves to BYOK,
-    // which matches the pre-subscription behavior.
-    private static let proProductID = 0
+    // LemonSqueezy product id used to tell a Pro subscription key from a
+    // BYOK lifetime key. Must match PRO_PRODUCT_ID in worker/src/license.ts.
+    private static let proProductID = 1352278
 
     // Keep the historical service name: existing licenses and instance ids
     // were stored under it before the trial was removed.

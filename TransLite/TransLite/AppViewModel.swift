@@ -866,14 +866,12 @@ final class AppViewModel: ObservableObject {
     }
 
     /// Opens the Pro subscription checkout.
-    /// TODO: set the real checkout URL once the Pro product exists in
-    /// LemonSqueezy.
     func openProCheckout(source: String = "plan_card") {
         AnalyticsClient.track("purchase_click", properties: [
             "product": .string("pro"),
             "source": .string(source)
         ])
-        if let url = URL(string: "https://translite.lemonsqueezy.com/checkout/buy/REPLACE-WITH-PRO-CHECKOUT") {
+        if let url = URL(string: "https://translite.lemonsqueezy.com/checkout/buy/33921d0d-951f-4b7c-885a-87c73555c808") {
             NSWorkspace.shared.open(url)
         }
     }

@@ -4,8 +4,7 @@ import type { Env } from "./providers";
 // LemonSqueezy product that grants the pro tier (the Pro subscription).
 // Keys from any other product (e.g. the BYOK lifetime license) resolve to
 // free — BYOK users talk to the providers directly and never need the proxy.
-// TODO: set the real product id from the LemonSqueezy dashboard.
-const PRO_PRODUCT_ID = 0;
+const PRO_PRODUCT_ID = 1352278;
 
 // Positive verdicts are cached for a day; rejections only briefly, so a
 // just-purchased key doesn't stay stuck on free.
@@ -21,7 +20,7 @@ interface CachedVerdict {
 /// cancelled subscription can keep pro access for up to a day, which is an
 /// accepted trade-off.
 export async function resolveTier(env: Env, licenseKey: string | undefined): Promise<TierName> {
-  if (!licenseKey || PRO_PRODUCT_ID === 0) return "free";
+  if (!licenseKey) return "free";
 
   // License keys are UUIDs; reject junk before caching or calling out.
   if (!/^[A-Za-z0-9-]{8,64}$/.test(licenseKey)) return "free";

@@ -42,7 +42,7 @@ async function callOpenAI(env: Env, tier: TierConfig, systemPrompt: string, user
     }),
   });
 
-  if (!res.ok) throw upstreamError(res.status);
+  if (!res.ok) throw await upstreamError("openai", res);
 
   const data = await res.json<{ choices?: { message?: { content?: string } }[] }>();
   const content = data.choices?.[0]?.message?.content;
@@ -70,7 +70,7 @@ async function callAnthropic(env: Env, tier: TierConfig, systemPrompt: string, u
     }),
   });
 
-  if (!res.ok) throw upstreamError(res.status);
+  if (!res.ok) throw await upstreamError("anthropic", res);
 
   const data = await res.json<{ content?: { type: string; text?: string }[] }>();
   const content = data.content?.find((block) => block.type === "text")?.text;
@@ -79,9 +79,12 @@ async function callAnthropic(env: Env, tier: TierConfig, systemPrompt: string, u
 }
 
 // Upstream details (including auth failures on OUR key) are never forwarded
-// to the client — only a generic retryable/non-retryable signal.
-function upstreamError(status: number): ApiError {
-  if (status === 429 || status === 529) {
+// to the client — only a generic retryable/non-retryable signal. The full
+// upstream response is logged server-side (visible via `wrangler tail`).
+async function upstreamError(provider: string, res: Response): Promise<ApiError> {
+  const body = await res.text().catch(() => "<unreadable>");
+  console.error(`Upstream ${provider} error ${res.status}: ${body.slice(0, 500)}`);
+  if (res.status === 429 || res.status === 529) {
     return new ApiError(429, "upstream_busy", "Translation service is busy - please try again shortly");
   }
   return new ApiError(502, "upstream_error", "Translation service error - please try again");

@@ -5,6 +5,7 @@ import SwiftUI
 final class HUDModel: ObservableObject {
     @Published var message: String = ""
     @Published var visible: Bool = false
+    @Published var tip: String?
 }
 
 /// Floating HUD window that shows translation status
@@ -14,6 +15,17 @@ final class TranslationHUD {
     private var window: NSWindow?
     private var hostingView: NSHostingView<HUDContentView>?
     private let model = HUDModel()
+    private var tipTimer: Timer?
+
+    /// Short usage tips shown under the HUD while the user waits
+    private static let tips = [
+        "Double-press the shortcut to improve text instead of translating",
+        "Auto-paste replaces your selected text in place — no ⌘V needed",
+        "Change the tone to Formal, Casual or Concise from the menu bar",
+        "The result is always copied to your clipboard",
+        "Pick a different target language from the menu bar",
+        "You can customize the shortcut from the menu bar settings"
+    ]
 
     private init() {}
 
@@ -28,6 +40,8 @@ final class TranslationHUD {
     func hide() {
         DispatchQueue.main.async { [weak self] in
             guard let self else { return }
+            self.tipTimer?.invalidate()
+            self.tipTimer = nil
             withAnimation(.easeIn(duration: 0.15)) {
                 self.model.visible = false
             }
@@ -45,22 +59,37 @@ final class TranslationHUD {
         DispatchQueue.main.async { [weak self] in
             guard let self else { return }
             self.model.message = message
+            self.resizeWindowToFit()
+        }
+    }
 
-            // Give SwiftUI a runloop pass to lay out the new text, then
-            // animate the window frame to fit it, keeping it centered
-            DispatchQueue.main.async {
-                guard let window = self.window, let hostingView = self.hostingView else { return }
-                let newSize = hostingView.fittingSize
-                var frame = window.frame
-                frame.origin.x = frame.midX - newSize.width / 2
-                frame.origin.y = frame.midY - newSize.height / 2
-                frame.size = newSize
-                NSAnimationContext.runAnimationGroup { context in
-                    context.duration = 0.2
-                    context.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
-                    window.animator().setFrame(frame, display: true)
-                }
+    /// Gives SwiftUI a runloop pass to lay out new content, then animates
+    /// the window frame to fit it, keeping it centered
+    private func resizeWindowToFit() {
+        DispatchQueue.main.async { [weak self] in
+            guard let self, let window = self.window, let hostingView = self.hostingView else { return }
+            let newSize = hostingView.fittingSize
+            var frame = window.frame
+            frame.origin.x = frame.midX - newSize.width / 2
+            frame.origin.y = frame.midY - newSize.height / 2
+            frame.size = newSize
+            NSAnimationContext.runAnimationGroup { context in
+                context.duration = 0.2
+                context.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
+                window.animator().setFrame(frame, display: true)
             }
+        }
+    }
+
+    /// Picks a random tip and keeps rotating it while the HUD is visible
+    private func startTips() {
+        model.tip = Self.tips.randomElement()
+        tipTimer?.invalidate()
+        tipTimer = Timer.scheduledTimer(withTimeInterval: 3.5, repeats: true) { [weak self] _ in
+            guard let self else { return }
+            let others = Self.tips.filter { $0 != self.model.tip }
+            self.model.tip = others.randomElement()
+            self.resizeWindowToFit()
         }
     }
 
@@ -70,6 +99,7 @@ final class TranslationHUD {
 
         model.message = message
         model.visible = false
+        startTips()
 
         // Create the SwiftUI content
         let contentView = HUDContentView(model: model)
@@ -121,28 +151,48 @@ struct HUDContentView: View {
     @State private var isPulsing = false
 
     var body: some View {
-        HStack(spacing: 12) {
-            Image("TransLiteIcon")
-                .resizable()
-                .renderingMode(.template)
-                .aspectRatio(contentMode: .fit)
-                .frame(width: 16, height: 13)
-                .foregroundColor(.white.opacity(0.7))
-                .opacity(isPulsing ? 0.3 : 1.0)
-                .animation(.easeInOut(duration: 0.6).repeatForever(autoreverses: true), value: isPulsing)
-                .onAppear {
-                    isPulsing = true
-                }
+        VStack(spacing: 8) {
+            HStack(spacing: 12) {
+                Image("TransLiteIcon")
+                    .resizable()
+                    .renderingMode(.template)
+                    .aspectRatio(contentMode: .fit)
+                    .frame(width: 16, height: 13)
+                    .foregroundColor(.white.opacity(0.7))
+                    .opacity(isPulsing ? 0.3 : 1.0)
+                    .animation(.easeInOut(duration: 0.6).repeatForever(autoreverses: true), value: isPulsing)
+                    .onAppear {
+                        isPulsing = true
+                    }
 
-            Text(model.message)
-                .font(.system(size: 14, weight: .medium))
-                .foregroundColor(.white)
-                .fixedSize(horizontal: true, vertical: false)
-                .contentTransition(.opacity)
+                Text(model.message)
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundColor(.white)
+                    .fixedSize(horizontal: true, vertical: false)
+                    .contentTransition(.opacity)
+            }
+            .padding(.horizontal, 20)
+            .padding(.vertical, 16)
+            .background(.thickMaterial, in: RoundedRectangle(cornerRadius: 12))
+
+            // Rotating usage tip shown while the user waits
+            if let tip = model.tip {
+                HStack(spacing: 6) {
+                    Image(systemName: "lightbulb.fill")
+                        .font(.system(size: 9))
+                        .foregroundColor(.white.opacity(0.5))
+                    Text(tip)
+                        .font(.system(size: 11))
+                        .foregroundColor(.white.opacity(0.7))
+                        .fixedSize(horizontal: true, vertical: false)
+                        .contentTransition(.opacity)
+                }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 7)
+                .background(.thickMaterial, in: RoundedRectangle(cornerRadius: 8))
+                .animation(.easeInOut(duration: 0.25), value: tip)
+            }
         }
-        .padding(.horizontal, 20)
-        .padding(.vertical, 16)
-        .background(.thickMaterial, in: RoundedRectangle(cornerRadius: 12))
         .scaleEffect(model.visible ? 1 : 0.9)
         .opacity(model.visible ? 1 : 0)
         .animation(.easeInOut(duration: 0.18), value: model.message)

@@ -6,7 +6,27 @@
         <description>Updates for TransLite</description>
         <language>en</language>
 
-        <!-- Current version: 1.1.5 -->
+        <!-- Current version: 1.2.0 -->
+        <item>
+            <title>Version 1.2.0</title>
+            <pubDate>Thu, 10 Sep 2026 15:16:28 +0200</pubDate>
+            <sparkle:version>17</sparkle:version>
+            <sparkle:shortVersionString>1.2.0</sparkle:shortVersionString>
+            <sparkle:minimumSystemVersion>13.0</sparkle:minimumSystemVersion>
+            <description><![CDATA[
+                <h2>TransLite 1.2.0</h2>
+                <ul>
+                    <li>New Free plan: translate to English without an API key, 20 translations a day</li>
+                    <li>New TransLite Pro subscription: all languages, long texts, zero setup</li>
+                    <li>BYOK becomes the Lifetime license; the 7-day trial is retired</li>
+                    <li>Redesigned plans, onboarding and permission warnings</li>
+                </ul>
+            ]]></description>
+            <enclosure
+                url="https://github.com/davizgarzia/TransLite/releases/download/v1.2.0/TransLite-1.2.0.dmg"
+                sparkle:edSignature="WqCmqLvnN4tDOu9Xn3m9uD79fD+Bdr83/HZYI/4v6acbSd5lBKVeN9vEtQkVe3hQ6Wom6uxO0gCGWKNiLYvPAw==" length="2262303"
+                type="application/octet-stream" />
+        </item>
         <item>
             <title>Version 1.1.5</title>
             <pubDate>Wed, 09 Sep 2026 02:49:05 +0200</pubDate>

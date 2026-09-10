@@ -409,26 +409,25 @@ struct PopoverView: View {
             .padding(.horizontal, cardPadding)
             .frame(height: 36)
 
+            // Temporary warning banner, tinted like the plan card but orange
             if viewModel.autoPasteEnabled && !viewModel.hasAccessibilityPermission {
-                Divider().padding(.leading, cardPadding)
-
-                HStack(spacing: 4) {
-                    Image(systemName: "exclamationmark.circle.fill")
+                HStack(spacing: 6) {
+                    Image(systemName: "exclamationmark.triangle.fill")
                         .foregroundColor(.orange)
                         .font(.system(size: 10))
                     Text("Accessibility required")
-                        .font(.system(size: 10))
-                        .foregroundColor(.secondary)
+                        .font(.system(size: 10, weight: .medium))
                     Spacer()
                     Button("Grant") {
                         viewModel.openAccessibilitySettings()
                     }
                     .font(.system(size: 9, weight: .medium))
-                    .buttonStyle(.bordered)
+                    .buttonStyle(.borderedProminent)
+                    .tint(.orange)
                     .controlSize(.small)
                 }
-                .padding(.horizontal, cardPadding)
-                .padding(.vertical, 8)
+                .padding(10)
+                .background(Color.orange.opacity(0.15))
             }
         }
         .background(Color(NSColor.controlBackgroundColor).opacity(0.7))

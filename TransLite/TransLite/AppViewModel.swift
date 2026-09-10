@@ -420,9 +420,9 @@ final class AppViewModel: ObservableObject {
     /// Shows an error in the HUD long enough to be read before the caller
     /// hides it. Free-tier users may never open the popover, so the HUD is
     /// their only feedback channel.
-    private func flashHUD(_ message: String, kind: HUDKind = .error) async {
+    private func flashHUD(_ message: String, kind: HUDKind = .error, seconds: Double = 1.6) async {
         hud.update(message: message, kind: kind)
-        try? await Task.sleep(nanoseconds: 1_600_000_000)
+        try? await Task.sleep(nanoseconds: UInt64(seconds * 1_000_000_000))
     }
 
     func translateClipboard() {
@@ -564,7 +564,10 @@ final class AppViewModel: ObservableObject {
 
                     // Nothing was pasted for the user — tell them the
                     // result is one keystroke away
-                    if delivery != "auto_paste" {
+                    if delivery == "auto_paste" {
+                        // Quick green confirmation before the HUD closes
+                        await flashHUD("Pasted", kind: .success, seconds: 0.9)
+                    } else {
                         await flashHUD("Copied — press ⌘V to paste", kind: .success)
                     }
 
@@ -723,7 +726,10 @@ final class AppViewModel: ObservableObject {
 
                     // Nothing was pasted for the user — tell them the
                     // result is one keystroke away
-                    if delivery != "auto_paste" {
+                    if delivery == "auto_paste" {
+                        // Quick green confirmation before the HUD closes
+                        await flashHUD("Pasted", kind: .success, seconds: 0.9)
+                    } else {
                         await flashHUD("Copied — press ⌘V to paste", kind: .success)
                     }
 

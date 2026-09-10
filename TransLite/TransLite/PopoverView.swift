@@ -60,10 +60,6 @@ struct PopoverView: View {
                         translationCard
                         settingsCard
 
-                        if viewModel.autoPasteEnabled && !viewModel.hasAccessibilityPermission {
-                            accessibilityBanner
-                        }
-
                         // BYOK configuration only makes sense with a license
                         // (or a grandfathered trial); free users never see it
                         if viewModel.canConfigureBYOK {
@@ -416,13 +412,19 @@ struct PopoverView: View {
             .padding(.horizontal, cardPadding)
             .frame(height: 36)
 
+            // Inset warning banner while auto-paste lacks the permission
+            if viewModel.autoPasteEnabled && !viewModel.hasAccessibilityPermission {
+                accessibilityBanner
+                    .padding([.horizontal, .bottom], cardPadding)
+            }
         }
         .background(Color(NSColor.controlBackgroundColor).opacity(0.7))
         .cornerRadius(cardCornerRadius)
     }
 
-    /// Standalone temporary warning banner shown below the settings card
-    /// while auto-paste lacks the accessibility permission.
+    /// Temporary warning banner nested inside the settings card, below the
+    /// auto-paste row. Its corner radius is derived from the card's so the
+    /// inset box nests harmonically.
     private var accessibilityBanner: some View {
         HStack(spacing: 6) {
             Image(systemName: "exclamationmark.triangle.fill")
@@ -440,7 +442,7 @@ struct PopoverView: View {
         }
         .padding(10)
         .background(Color.orange.opacity(0.15))
-        .cornerRadius(cardCornerRadius)
+        .cornerRadius(cardCornerRadius - cardPadding)
     }
 
     // MARK: - Tone Selector

@@ -546,7 +546,6 @@ final class AppViewModel: ObservableObject {
                         hasAccessibilityPermission = accessibility.hasAccessibilityPermission
 
                         if hasAccessibilityPermission {
-                            hud.update(message: "Pasting...")
                             // Small delay to ensure clipboard is set
                             try? await Task.sleep(nanoseconds: 100_000_000) // 100ms
                             if accessibility.simulatePaste() {
@@ -708,7 +707,6 @@ final class AppViewModel: ObservableObject {
                         hasAccessibilityPermission = accessibility.hasAccessibilityPermission
 
                         if hasAccessibilityPermission {
-                            hud.update(message: "Pasting...")
                             // Small delay to ensure clipboard is set
                             try? await Task.sleep(nanoseconds: 100_000_000) // 100ms
                             if accessibility.simulatePaste() {

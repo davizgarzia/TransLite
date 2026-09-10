@@ -4,7 +4,10 @@ import type { Env } from "./providers";
 // LemonSqueezy product that grants the pro tier (the Pro subscription).
 // Keys from any other product (e.g. the BYOK lifetime license) resolve to
 // free — BYOK users talk to the providers directly and never need the proxy.
-const PRO_PRODUCT_ID = 1352278;
+const PRO_PRODUCT_IDS = new Set([
+  1352278, // TransLite Pro (live)
+  1352332, // TransLite Pro test-mode duplicate — REMOVE before launch
+]);
 
 // Positive verdicts are cached for a day; rejections only briefly, so a
 // just-purchased key doesn't stay stuck on free.
@@ -54,7 +57,7 @@ async function validateWithLemonSqueezy(licenseKey: string): Promise<TierName> {
       meta?: { product_id?: number };
     }>();
 
-    if (data.valid === true && data.meta?.product_id === PRO_PRODUCT_ID) {
+    if (data.valid === true && PRO_PRODUCT_IDS.has(data.meta?.product_id ?? -1)) {
       return "pro";
     }
     return "free";

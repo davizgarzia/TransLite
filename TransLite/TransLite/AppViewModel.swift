@@ -459,9 +459,9 @@ final class AppViewModel: ObservableObject {
 
             // Proxied tiers: enforce limits before spending a request
             if let limits = proxyLimits(for: backend) {
-                if let quota = limits.dailyQuota,
+                if limits.dailyQuota != nil,
                    let remaining = proxy.quotaRemainingToday, remaining <= 0 {
-                    statusMessage = "Daily limit reached (\(quota) per day)"
+                    statusMessage = "Daily limit reached"
                     AnalyticsClient.track("translation_failed", properties: [
                         "provider": .string(providerLabel),
                         "reason": .string("quota_exceeded")
@@ -642,9 +642,9 @@ final class AppViewModel: ObservableObject {
 
             // Proxied tiers: enforce limits before spending a request
             if let limits = proxyLimits(for: backend) {
-                if let quota = limits.dailyQuota,
+                if limits.dailyQuota != nil,
                    let remaining = proxy.quotaRemainingToday, remaining <= 0 {
-                    statusMessage = "Daily limit reached (\(quota) per day)"
+                    statusMessage = "Daily limit reached"
                     AnalyticsClient.track("improvement_failed", properties: [
                         "provider": .string(providerLabel),
                         "reason": .string("quota_exceeded")

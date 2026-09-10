@@ -109,7 +109,7 @@ async function handleCompletion(request: Request, env: Env, isTranslate: boolean
   if (tier.dailyQuota !== null) {
     used = await usedToday(env.QUOTA, deviceId);
     if (used >= tier.dailyQuota) {
-      throw new ApiError(429, "quota_exceeded", `Daily limit reached (${tier.dailyQuota} per day)`);
+      throw new ApiError(429, "quota_exceeded", "Daily limit reached");
     }
   }
 

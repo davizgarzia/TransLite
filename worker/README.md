@@ -50,7 +50,7 @@ All endpoints return JSON. Errors look like
 Limits of every enabled tier, for client-side pre-flight checks:
 
 ```json
-{ "tiers": { "free": { "max_chars": 1000, "daily_quota": 25 } } }
+{ "tiers": { "free": { "max_chars": 1000, "daily_quota": 25, "target_languages": ["English"] } } }
 ```
 
 ### `POST /v1/translate`
@@ -80,6 +80,7 @@ Same shape without `target_language`/`tone`. Returns `{ "text": "..." }`.
 |------|---------------------|--------------------------------------------|
 | 413  | `text_too_long`     | Over the tier's character cap              |
 | 429  | `quota_exceeded`    | Daily quota used up (upsell moment)        |
+| 403  | `language_not_allowed` | Target language not in the tier (free = English only) |
 | 429  | `upstream_busy`     | Provider rate-limited us; retry shortly    |
 | 502  | `upstream_error`    | Provider failure; retry                    |
 | 400  | `invalid_request`   | Malformed body / unknown language or tone  |

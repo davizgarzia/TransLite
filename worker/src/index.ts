@@ -46,10 +46,14 @@ export default {
 // Exposes each enabled tier's limits so the app can mirror them in its
 // pre-flight checks without hardcoding values in two places.
 function handleConfig(): Response {
-  const tiers: Record<string, { max_chars: number; daily_quota: number | null }> = {};
+  const tiers: Record<string, { max_chars: number; daily_quota: number | null; target_languages: string[] | null }> = {};
   for (const [name, tier] of Object.entries(TIERS)) {
     if (tier.enabled) {
-      tiers[name] = { max_chars: tier.maxChars, daily_quota: tier.dailyQuota };
+      tiers[name] = {
+        max_chars: tier.maxChars,
+        daily_quota: tier.dailyQuota,
+        target_languages: tier.allowedTargets,
+      };
     }
   }
   return Response.json({ tiers }, { headers: { "Cache-Control": "max-age=3600" } });
@@ -76,20 +80,19 @@ async function handleCompletion(request: Request, env: Env, isTranslate: boolean
     throw new ApiError(413, "text_too_long", `Text too long (max ${tier.maxChars} characters)`);
   }
 
-  let used = 0;
-  if (tier.dailyQuota !== null) {
-    used = await usedToday(env.QUOTA, deviceId);
-    if (used >= tier.dailyQuota) {
-      throw new ApiError(429, "quota_exceeded", `Daily limit reached (${tier.dailyQuota} per day)`);
-    }
-  }
-
   let systemPrompt: string;
   let userPrompt: string;
   if (isTranslate) {
     const targetLanguage = body.target_language ?? "";
     if (!TARGET_LANGUAGES.has(targetLanguage)) {
       throw new ApiError(400, "invalid_request", "Unsupported target_language");
+    }
+    if (tier.allowedTargets && !tier.allowedTargets.includes(targetLanguage)) {
+      throw new ApiError(
+        403,
+        "language_not_allowed",
+        `Your plan only translates to ${tier.allowedTargets.join(", ")}`,
+      );
     }
     const toneInstruction = TONES[body.tone ?? "original"];
     if (!toneInstruction) {
@@ -100,6 +103,14 @@ async function handleCompletion(request: Request, env: Env, isTranslate: boolean
   } else {
     systemPrompt = IMPROVE_SYSTEM_PROMPT;
     userPrompt = improveUserPrompt(text);
+  }
+
+  let used = 0;
+  if (tier.dailyQuota !== null) {
+    used = await usedToday(env.QUOTA, deviceId);
+    if (used >= tier.dailyQuota) {
+      throw new ApiError(429, "quota_exceeded", `Daily limit reached (${tier.dailyQuota} per day)`);
+    }
   }
 
   const result = await callProvider(env, tier, systemPrompt, userPrompt);

@@ -12,6 +12,8 @@ export interface TierConfig {
   maxChars: number;
   /// Translations per device per UTC day. null = unlimited.
   dailyQuota: number | null;
+  /// Target languages this tier may translate into. null = all supported.
+  allowedTargets: string[] | null;
   provider: Provider;
   model: string;
   maxTokens: number;
@@ -22,6 +24,7 @@ export const TIERS: Record<TierName, TierConfig> = {
     enabled: true,
     maxChars: 1000,
     dailyQuota: 25,
+    allowedTargets: ["English"],
     provider: "openai",
     model: "gpt-4o-mini",
     maxTokens: 2048,
@@ -32,6 +35,7 @@ export const TIERS: Record<TierName, TierConfig> = {
     enabled: false,
     maxChars: 10000,
     dailyQuota: 500,
+    allowedTargets: null,
     provider: "openai",
     model: "gpt-4o-mini",
     maxTokens: 8192,

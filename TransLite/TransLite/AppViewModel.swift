@@ -479,6 +479,21 @@ final class AppViewModel: ObservableObject {
                 return
             }
 
+            // Free tier: only the allowed target languages (English)
+            if case .freeTier = backend,
+               let allowedTargets = proxy.freeLimits.allowedTargets,
+               !allowedTargets.contains(targetLanguage.rawValue) {
+                statusMessage = "Free plan translates to \(allowedTargets.joined(separator: ", ")) only"
+                AnalyticsClient.track("translation_failed", properties: [
+                    "provider": .string(providerLabel),
+                    "reason": .string("language_not_allowed")
+                ])
+                await flashHUDError(statusMessage)
+                hud.hide()
+                isTranslating = false
+                return
+            }
+
             statusMessage = "Translating..."
             hud.update(message: "Translating...")
             let startedAt = Date()
@@ -742,6 +757,7 @@ final class AppViewModel: ObservableObject {
             case .invalidResponse: return "invalid_response"
             case .textTooLong: return "text_too_long"
             case .quotaExceeded: return "quota_exceeded"
+            case .languageNotAllowed: return "language_not_allowed"
             case .busy: return "rate_limited"
             case .apiError: return "provider_error"
             case .serverError: return "server_error"

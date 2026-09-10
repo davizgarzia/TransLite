@@ -19,9 +19,11 @@ final class ProxyClient {
     struct TierLimits {
         var maxChars: Int
         var dailyQuota: Int?
+        /// Target languages the tier may translate into; nil = all.
+        var allowedTargets: [String]?
     }
 
-    private(set) var freeLimits = TierLimits(maxChars: 1000, dailyQuota: 25)
+    private(set) var freeLimits = TierLimits(maxChars: 1000, dailyQuota: 25, allowedTargets: ["English"])
 
     /// Translations left today for this device, from the last response's
     /// X-Quota-Remaining header. nil until the first proxied request.
@@ -34,6 +36,9 @@ final class ProxyClient {
         if let cachedQuota = UserDefaults.standard.object(forKey: "freeTierDailyQuota") as? Int {
             freeLimits.dailyQuota = cachedQuota
         }
+        if let cachedTargets = UserDefaults.standard.stringArray(forKey: "freeTierTargets") {
+            freeLimits.allowedTargets = cachedTargets
+        }
     }
 
     // MARK: - Config
@@ -45,6 +50,7 @@ final class ProxyClient {
             struct Tier: Decodable {
                 let max_chars: Int
                 let daily_quota: Int?
+                let target_languages: [String]?
             }
             let tiers: [String: Tier]
         }
@@ -59,10 +65,19 @@ final class ProxyClient {
             return
         }
 
-        freeLimits = TierLimits(maxChars: free.max_chars, dailyQuota: free.daily_quota)
+        freeLimits = TierLimits(
+            maxChars: free.max_chars,
+            dailyQuota: free.daily_quota,
+            allowedTargets: free.target_languages
+        )
         UserDefaults.standard.set(free.max_chars, forKey: "freeTierMaxChars")
         if let quota = free.daily_quota {
             UserDefaults.standard.set(quota, forKey: "freeTierDailyQuota")
+        }
+        if let targets = free.target_languages {
+            UserDefaults.standard.set(targets, forKey: "freeTierTargets")
+        } else {
+            UserDefaults.standard.removeObject(forKey: "freeTierTargets")
         }
     }
 
@@ -123,6 +138,7 @@ final class ProxyClient {
         switch decoded.error.code {
         case "text_too_long": throw ProxyError.textTooLong(decoded.error.message)
         case "quota_exceeded": throw ProxyError.quotaExceeded(decoded.error.message)
+        case "language_not_allowed": throw ProxyError.languageNotAllowed(decoded.error.message)
         case "upstream_busy": throw ProxyError.busy(decoded.error.message)
         default: throw ProxyError.apiError(decoded.error.message)
         }
@@ -135,6 +151,7 @@ enum ProxyError: LocalizedError {
     case invalidResponse
     case textTooLong(String)
     case quotaExceeded(String)
+    case languageNotAllowed(String)
     case busy(String)
     case apiError(String)
     case serverError(Int)
@@ -144,7 +161,8 @@ enum ProxyError: LocalizedError {
         case .invalidResponse:
             return "Invalid response from TransLite service"
         case .textTooLong(let message), .quotaExceeded(let message),
-             .busy(let message), .apiError(let message):
+             .languageNotAllowed(let message), .busy(let message),
+             .apiError(let message):
             return message
         case .serverError(let code):
             return "TransLite service error (HTTP \(code))"

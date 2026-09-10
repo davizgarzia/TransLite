@@ -431,13 +431,18 @@ struct PopoverView: View {
             Text("Accessibility required")
                 .font(.system(size: 10, weight: .medium))
             Spacer()
-            Button("Grant") {
+            Button {
                 viewModel.openAccessibilitySettings()
+            } label: {
+                Text("Grant")
+                    .font(.system(size: 9, weight: .semibold))
+                    .foregroundColor(.orange)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 4)
+                    .background(Color.orange.opacity(0.25))
+                    .cornerRadius(5)
             }
-            .font(.system(size: 9, weight: .medium))
-            .buttonStyle(.bordered)
-            .tint(.orange)
-            .controlSize(.small)
+            .buttonStyle(.plain)
         }
         .padding(.horizontal, 8)
         .padding(.vertical, 6)

@@ -420,7 +420,7 @@ final class AppViewModel: ObservableObject {
     /// Shows an error in the HUD long enough to be read before the caller
     /// hides it. Free-tier users may never open the popover, so the HUD is
     /// their only feedback channel.
-    private func flashHUDError(_ message: String) async {
+    private func flashHUD(_ message: String) async {
         hud.update(message: message)
         try? await Task.sleep(nanoseconds: 1_600_000_000)
     }
@@ -466,7 +466,7 @@ final class AppViewModel: ObservableObject {
                         "provider": .string(providerLabel),
                         "reason": .string("quota_exceeded")
                     ])
-                    await flashHUDError(statusMessage)
+                    await flashHUD(statusMessage)
                     hud.hide()
                     isTranslating = false
                     return
@@ -478,7 +478,7 @@ final class AppViewModel: ObservableObject {
                         "provider": .string(providerLabel),
                         "reason": .string("text_too_long")
                     ])
-                    await flashHUDError(statusMessage)
+                    await flashHUD(statusMessage)
                     hud.hide()
                     isTranslating = false
                     return
@@ -491,7 +491,7 @@ final class AppViewModel: ObservableObject {
                         "provider": .string(providerLabel),
                         "reason": .string("language_not_allowed")
                     ])
-                    await flashHUDError(statusMessage)
+                    await flashHUD(statusMessage)
                     hud.hide()
                     isTranslating = false
                     return
@@ -562,6 +562,12 @@ final class AppViewModel: ObservableObject {
                         }
                     }
 
+                    // Nothing was pasted for the user — tell them the
+                    // result is one keystroke away
+                    if delivery != "auto_paste" {
+                        await flashHUD("Copied — press ⌘V to paste")
+                    }
+
                     // Free always sees the counter; Pro only near the
                     // fair-use cap
                     if case .proxy(let licenseKey) = backend,
@@ -585,7 +591,7 @@ final class AppViewModel: ObservableObject {
             } catch {
                 statusMessage = error.localizedDescription
                 if error is ProxyError {
-                    await flashHUDError(statusMessage)
+                    await flashHUD(statusMessage)
                 }
                 var failedProperties = baseProperties
                 failedProperties["duration_ms"] = .integer(Self.durationMilliseconds(since: startedAt))
@@ -643,7 +649,7 @@ final class AppViewModel: ObservableObject {
                         "provider": .string(providerLabel),
                         "reason": .string("quota_exceeded")
                     ])
-                    await flashHUDError(statusMessage)
+                    await flashHUD(statusMessage)
                     hud.hide()
                     isTranslating = false
                     return
@@ -655,7 +661,7 @@ final class AppViewModel: ObservableObject {
                         "provider": .string(providerLabel),
                         "reason": .string("text_too_long")
                     ])
-                    await flashHUDError(statusMessage)
+                    await flashHUD(statusMessage)
                     hud.hide()
                     isTranslating = false
                     return
@@ -715,6 +721,12 @@ final class AppViewModel: ObservableObject {
                         }
                     }
 
+                    // Nothing was pasted for the user — tell them the
+                    // result is one keystroke away
+                    if delivery != "auto_paste" {
+                        await flashHUD("Copied — press ⌘V to paste")
+                    }
+
                     // Free always sees the counter; Pro only near the
                     // fair-use cap
                     if case .proxy(let licenseKey) = backend,
@@ -738,7 +750,7 @@ final class AppViewModel: ObservableObject {
             } catch {
                 statusMessage = error.localizedDescription
                 if error is ProxyError {
-                    await flashHUDError(statusMessage)
+                    await flashHUD(statusMessage)
                 }
                 var failedProperties = baseProperties
                 failedProperties["duration_ms"] = .integer(Self.durationMilliseconds(since: startedAt))

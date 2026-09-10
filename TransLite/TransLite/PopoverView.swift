@@ -56,6 +56,10 @@ struct PopoverView: View {
                 } else if showingShortcutConfig {
                     shortcutConfigCard
                 } else {
+                    if !isLicensed {
+                        trialSection
+                    }
+
                     VStack(spacing: contentSpacing) {
                         translationCard
                         settingsCard
@@ -69,12 +73,6 @@ struct PopoverView: View {
                     // Trial expiry only gates BYOK; the free tier keeps working
                     .opacity(trialExpired && !viewModel.usesFreeTier ? 0.5 : 1.0)
                     .disabled(trialExpired && !viewModel.usesFreeTier)
-
-                    // Plan card last, outside the disabled group so Buy
-                    // License stays tappable even when BYOK is blocked
-                    if !isLicensed {
-                        trialSection
-                    }
                 }
             }
 
@@ -442,7 +440,7 @@ struct PopoverView: View {
         }
         .padding(10)
         .background(Color.orange.opacity(0.15))
-        .cornerRadius(cardCornerRadius - cardPadding)
+        .cornerRadius(cardCornerRadius)
     }
 
     // MARK: - Tone Selector

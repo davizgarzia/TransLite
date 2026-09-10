@@ -17,14 +17,14 @@ final class TranslationHUD {
     private let model = HUDModel()
     private var tipTimer: Timer?
 
-    /// Short usage tips shown under the HUD while the user waits
+    /// One-line usage tips shown under the HUD while the user waits
     private static let tips = [
-        "Double-press the shortcut to improve text instead of translating",
-        "Auto-paste replaces your selected text in place — no ⌘V needed",
-        "Change the tone to Formal, Casual or Concise from the menu bar",
-        "The result is always copied to your clipboard",
-        "Pick a different target language from the menu bar",
-        "You can customize the shortcut from the menu bar settings"
+        "Double-press the shortcut to improve",
+        "Auto-paste replaces text in place",
+        "Switch tones from the menu bar",
+        "The result is in your clipboard",
+        "Change the language in the menu bar",
+        "The shortcut is customizable"
     ]
 
     private init() {}

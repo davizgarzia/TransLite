@@ -16,25 +16,8 @@ struct PopoverView: View {
     private let cardCornerRadius: CGFloat = 12
     private let contentSpacing: CGFloat = 8
 
-    private var trialExpired: Bool {
-        if case .expired = viewModel.trialStatus { return true }
-        return false
-    }
-
     private var isLicensed: Bool {
-        if case .licensed = viewModel.trialStatus { return true }
-        return false
-    }
-
-    private var trialDaysRemaining: Int {
-        if case .active(let days) = viewModel.trialStatus { return days }
-        return 0
-    }
-
-    private var trialProgress: Double {
-        let total = 7.0
-        let used = total - Double(trialDaysRemaining)
-        return used / total
+        viewModel.isLicensed
     }
 
     @State private var showingLicenseInput = false
@@ -57,22 +40,22 @@ struct PopoverView: View {
                     shortcutConfigCard
                 } else {
                     if !isLicensed {
-                        trialSection
+                        planSection
                     }
 
                     VStack(spacing: contentSpacing) {
                         translationCard
                         settingsCard
 
-                        // BYOK configuration only makes sense with a license
-                        // (or a grandfathered trial); free users never see it
+                        // BYOK configuration only makes sense with a
+                        // license; free users never see it
                         if viewModel.canConfigureBYOK {
                             keysCard
                         }
                     }
-                    // Trial expiry only gates BYOK; the free tier keeps working
-                    .opacity(trialExpired && !viewModel.usesFreeTier ? 0.5 : 1.0)
-                    .disabled(trialExpired && !viewModel.usesFreeTier)
+                    // Missing license only gates BYOK; free keeps working
+                    .opacity(byokBlocked ? 0.5 : 1.0)
+                    .disabled(byokBlocked)
                 }
             }
 
@@ -87,7 +70,7 @@ struct PopoverView: View {
         .fixedSize(horizontal: false, vertical: true)
         .onAppear {
             viewModel.refreshAccessibilityStatus()
-            viewModel.refreshTrialStatus()
+            viewModel.refreshLicenseStatus()
             hotkeyLetter = String(HotkeyManager.character(for: viewModel.hotkeyKeyCode) ?? "T")
             if viewModel.autoPasteEnabled && !viewModel.hasAccessibilityPermission {
                 viewModel.startPermissionPolling()
@@ -149,17 +132,15 @@ struct PopoverView: View {
         }
     }
 
-    // MARK: - Trial Section
+    // MARK: - Plan Section
 
     /// True only when BYOK is actually blocked: keys configured but no
-    /// license and no active (grandfathered) trial. Free-tier users are
-    /// never in a blocked state.
+    /// license. Free-tier users are never in a blocked state.
     private var byokBlocked: Bool {
-        trialExpired && !viewModel.usesFreeTier
+        !isLicensed && !viewModel.usesFreeTier
     }
 
-    /// Thin progress bar shared by the trial countdown and the free-plan
-    /// daily quota.
+    /// Thin progress bar for the free-plan daily quota.
     private func planProgressBar(fraction: Double) -> some View {
         GeometryReader { geometry in
             ZStack(alignment: .leading) {
@@ -175,32 +156,14 @@ struct PopoverView: View {
         .frame(height: 4)
     }
 
-    private var trialSection: some View {
+    private var planSection: some View {
         let quota = viewModel.freeLimits.dailyQuota ?? 20
         let remaining = viewModel.freeQuotaRemaining ?? quota
 
         return VStack(spacing: 0) {
             // Plan status section
             VStack(spacing: 8) {
-                if !trialExpired {
-                    // Grandfathered trial still running
-                    HStack {
-                        Text("\(trialDaysRemaining) days left in trial")
-                            .font(.system(size: 11, weight: .medium))
-                            .foregroundColor(.secondary)
-
-                        Spacer()
-
-                        Button {
-                            viewModel.openPurchasePage()
-                        } label: {
-                            UpgradeButton(text: "Upgrade", isExpired: false)
-                        }
-                        .buttonStyle(.plain)
-                    }
-
-                    planProgressBar(fraction: trialProgress)
-                } else if viewModel.usesFreeTier {
+                if viewModel.usesFreeTier {
                     HStack(alignment: .firstTextBaseline) {
                         Text("Free plan")
                             .font(.system(size: 13, weight: .semibold))
@@ -244,7 +207,7 @@ struct PopoverView: View {
                         .controlSize(.small)
                         .disabled(viewModel.isActivatingLicense)
                     } else {
-                        if trialExpired && !showingLicenseInput {
+                        if !showingLicenseInput {
                             Button("Buy License") {
                                 viewModel.openPurchasePage()
                             }
@@ -1254,48 +1217,21 @@ private struct FeedbackMenu: View {
     }
 }
 
-private struct UpgradeButton: View {
-    let text: String
-    let isExpired: Bool
-    @State private var isHovered = false
-
-    private var baseColor: Color {
-        isExpired ? .red : .accentColor
-    }
-
-    var body: some View {
-        Text(text)
-            .font(.system(size: 10, weight: .semibold))
-            .foregroundColor(baseColor)
-            .padding(.horizontal, 10)
-            .padding(.vertical, 5)
-            .background(baseColor.opacity(isHovered ? 0.2 : 0.1))
-            .cornerRadius(6)
-            .onHover { hovering in
-                withAnimation(.easeInOut(duration: 0.15)) {
-                    isHovered = hovering
-                }
-            }
-    }
-}
-
 #if DEBUG
 private struct DebugMenu: View {
     @ObservedObject var viewModel: AppViewModel
     @State private var isHovered = false
 
     private var stateInfo: String {
-        let info = TrialManager.shared.debugInfo
         var keys: [String] = []
         if viewModel.hasAPIKey { keys.append("openai") }
         if viewModel.hasClaudeAPIKey { keys.append("claude") }
         let quotaLeft = viewModel.freeQuotaRemaining.map(String.init) ?? "full?"
         let quota = viewModel.freeLimits.dailyQuota.map(String.init) ?? "∞"
         return """
-        Status: \(info.status)
-        Keys: \(keys.isEmpty ? "none (free tier)" : keys.joined(separator: ", "))
+        Plan: \(viewModel.isLicensed ? "licensed" : "free")
+        Keys: \(keys.isEmpty ? "none" : keys.joined(separator: ", "))
         Quota left: \(quotaLeft)/\(quota)
-        Trial start: \(info.startDate)
         """
     }
 
@@ -1313,35 +1249,14 @@ private struct DebugMenu: View {
 
             Divider()
 
-            Section("Plan") {
-                Button("Free Plan (no trial)") {
-                    TrialManager.shared.debugClearTrial()
-                    viewModel.refreshTrialStatus()
-                }
-                Button("Grandfathered Trial (7 days)") {
-                    TrialManager.shared.debugResetTrial()
-                    viewModel.refreshTrialStatus()
-                }
-                Button("Grandfathered Trial (1 day left)") {
-                    TrialManager.shared.debugSetDaysLeft(1)
-                    viewModel.refreshTrialStatus()
-                }
-                Button("Expired Trial") {
-                    TrialManager.shared.debugExpireTrial()
-                    viewModel.refreshTrialStatus()
-                }
-            }
-
-            Divider()
-
             Section("License") {
                 Button("Activate Fake License (offline)") {
-                    TrialManager.shared.debugActivateLicense()
-                    viewModel.refreshTrialStatus()
+                    LicenseManager.shared.debugActivateLicense()
+                    viewModel.refreshLicenseStatus()
                 }
-                Button("Remove License") {
-                    TrialManager.shared.removeLicense()
-                    viewModel.refreshTrialStatus()
+                Button("Remove License (Free plan)") {
+                    LicenseManager.shared.removeLicense()
+                    viewModel.refreshLicenseStatus()
                 }
             }
 
@@ -1375,14 +1290,14 @@ private struct DebugMenu: View {
                     UserDefaults.standard.set(false, forKey: "hasSeenWelcome")
                     UserDefaults.standard.set(false, forKey: "onboardingComplete")
 
-                    // A fresh install has no trial, no license and no
-                    // cached free-tier state
-                    TrialManager.shared.debugClearTrial()
+                    // A fresh install has no license and no cached
+                    // free-tier state
+                    LicenseManager.shared.removeLicense()
                     for key in Self.cachedFreeTierDefaults {
                         UserDefaults.standard.removeObject(forKey: key)
                     }
                     viewModel.freeQuotaRemaining = nil
-                    viewModel.refreshTrialStatus()
+                    viewModel.refreshLicenseStatus()
 
                     // Force back to welcome screen
                     viewModel.onboardingStep = .welcome

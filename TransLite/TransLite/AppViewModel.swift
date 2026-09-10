@@ -124,8 +124,8 @@ final class AppViewModel: ObservableObject {
     @Published var freeLimits = ProxyClient.shared.freeLimits
     @Published var hasAccessibilityPermission: Bool = false
 
-    // Trial & License
-    @Published var trialStatus: TrialManager.TrialStatus = .expired
+    // License
+    @Published var isLicensed: Bool = false
     @Published var licenseKeyInput: String = ""
     @Published var isActivatingLicense: Bool = false
 
@@ -156,16 +156,14 @@ final class AppViewModel: ObservableObject {
     }
 
     /// Whether the BYOK settings (provider picker, API keys) should be
-    /// offered at all: requires a license or a still-active grandfathered
-    /// trial. Free users never see key configuration.
+    /// offered at all. Free users never see key configuration.
     var canConfigureBYOK: Bool {
-        if case .expired = trialStatus { return false }
-        return true
+        isLicensed
     }
 
     // MARK: - Private Properties
 
-    private let trialManager = TrialManager.shared
+    private let licenseManager = LicenseManager.shared
     private let keychain = KeychainHelper.shared
     private let clipboard = ClipboardManager.shared
     private let openAI = OpenAIClient.shared
@@ -215,9 +213,7 @@ final class AppViewModel: ObservableObject {
         // Check accessibility permission
         self.hasAccessibilityPermission = accessibility.hasAccessibilityPermission
 
-        // Record usage and get trial status
-        trialManager.recordUsage()
-        self.trialStatus = trialManager.status
+        self.isLicensed = licenseManager.isLicensed
 
         // Set onboarding step - determine WITHOUT accessing Keychain yet
         // to avoid triggering the Keychain permission dialog before UI is ready
@@ -372,14 +368,14 @@ final class AppViewModel: ObservableObject {
     /// Resolves how the next request should be fulfilled, setting
     /// statusMessage and returning nil when the action can't proceed.
     private func resolveBackend() -> TranslationBackend? {
-        refreshTrialStatus()
+        refreshLicenseStatus()
 
         if usesFreeTier {
             return .freeTier
         }
 
-        // BYOK requires a license (or a grandfathered trial still running)
-        guard trialManager.canUseApp else {
+        // BYOK requires a license
+        guard isLicensed else {
             statusMessage = "License required to use your own API key"
             return nil
         }
@@ -811,10 +807,10 @@ final class AppViewModel: ObservableObject {
         hotkeyKeyCode = keyCode
     }
 
-    // MARK: - Trial & License
+    // MARK: - License
 
-    func refreshTrialStatus() {
-        trialStatus = trialManager.status
+    func refreshLicenseStatus() {
+        isLicensed = licenseManager.isLicensed
     }
 
     func activateLicense() {
@@ -829,10 +825,10 @@ final class AppViewModel: ObservableObject {
         statusMessage = "Activating license..."
 
         Task {
-            let success = await trialManager.activateLicense(trimmedKey)
+            let success = await licenseManager.activateLicense(trimmedKey)
 
             if success {
-                trialStatus = trialManager.status
+                isLicensed = licenseManager.isLicensed
                 licenseKeyInput = ""
                 statusMessage = "License activated!"
             } else {

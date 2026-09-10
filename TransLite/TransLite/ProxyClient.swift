@@ -104,14 +104,14 @@ final class ProxyClient {
             "text": text,
             "target_language": targetLanguage,
             "tone": tone.rawValue,
-            "device_id": TrialManager.shared.deviceId
+            "device_id": LicenseManager.shared.deviceId
         ])
     }
 
     func improve(text: String) async throws -> String {
         try await send(path: "v1/improve", body: [
             "text": text,
-            "device_id": TrialManager.shared.deviceId
+            "device_id": LicenseManager.shared.deviceId
         ])
     }
 

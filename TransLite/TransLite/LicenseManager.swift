@@ -2,86 +2,18 @@ import Foundation
 import Security
 import IOKit
 
-/// Manages trial period and license validation using Keychain for persistence
-final class TrialManager {
-    static let shared = TrialManager()
+/// Manages license validation and the per-device identifier, both persisted
+/// in the Keychain. The app has two states: free tier (default) or licensed
+/// (unlocks BYOK).
+final class LicenseManager {
+    static let shared = LicenseManager()
 
+    // Keep the historical service name: existing licenses and instance ids
+    // were stored under it before the trial was removed.
     private let service = "com.translite.trial"
-    private let trialStartKey = "trial-start-date"
-    private let lastUsedKey = "last-used-date"
     private let licenseKey = "license-key"
 
-    private let trialDays = 7
-
     private init() {}
-
-    // MARK: - Trial Status
-
-    enum TrialStatus {
-        case active(daysRemaining: Int)
-        case expired
-        case licensed
-    }
-
-    /// Returns the current trial status
-    var status: TrialStatus {
-        // Check if licensed first
-        if isLicensed {
-            return .licensed
-        }
-
-        // Check for date manipulation
-        if hasDateBeenManipulated {
-            return .expired
-        }
-
-        // Trials are no longer started for new installs — the free tier
-        // replaced them. Trials already in progress are honored until expiry.
-        guard let startDate = trialStartDate else {
-            return .expired
-        }
-
-        let daysPassed = Calendar.current.dateComponents([.day], from: startDate, to: Date()).day ?? 0
-        let daysRemaining = max(0, trialDays - daysPassed)
-
-        if daysRemaining > 0 {
-            return .active(daysRemaining: daysRemaining)
-        } else {
-            return .expired
-        }
-    }
-
-    /// Whether BYOK can be used (licensed, or a grandfathered trial still
-    /// active). The free tier is never gated by this.
-    var canUseApp: Bool {
-        switch status {
-        case .active, .licensed:
-            return true
-        case .expired:
-            return false
-        }
-    }
-
-    /// Updates the last used date - call this on each app launch
-    func recordUsage() {
-        saveDate(Date(), forKey: lastUsedKey)
-    }
-
-    // MARK: - Trial Management
-
-    private var trialStartDate: Date? {
-        getDate(forKey: trialStartKey)
-    }
-
-    private var lastUsedDate: Date? {
-        getDate(forKey: lastUsedKey)
-    }
-
-    private var hasDateBeenManipulated: Bool {
-        guard let lastUsed = lastUsedDate else { return false }
-        // If current date is before last used date, user manipulated system clock
-        return Date() < lastUsed
-    }
 
     // MARK: - License Management
 
@@ -160,6 +92,12 @@ final class TrialManager {
         }
     }
 
+    func removeLicense() {
+        deleteLicenseKey()
+    }
+
+    // MARK: - Device Identity
+
     /// Stable per-Mac identifier, also used by the free-tier proxy for
     /// daily quota accounting.
     var deviceId: String {
@@ -198,22 +136,7 @@ final class TrialManager {
         return uuid
     }
 
-    func removeLicense() {
-        deleteLicenseKey()
-    }
-
     // MARK: - Keychain Helpers
-
-    private func saveDate(_ date: Date, forKey key: String) {
-        let timestamp = String(date.timeIntervalSince1970)
-        saveString(timestamp, forKey: key)
-    }
-
-    private func getDate(forKey key: String) -> Date? {
-        guard let timestamp = getString(forKey: key),
-              let interval = Double(timestamp) else { return nil }
-        return Date(timeIntervalSince1970: interval)
-    }
 
     private func saveString(_ value: String, forKey key: String) {
         guard let data = value.data(using: .utf8) else { return }
@@ -257,15 +180,6 @@ final class TrialManager {
         return string
     }
 
-    private func deleteString(forKey key: String) {
-        let query: [String: Any] = [
-            kSecClass as String: kSecClassGenericPassword,
-            kSecAttrService as String: service,
-            kSecAttrAccount as String: key
-        ]
-        SecItemDelete(query as CFDictionary)
-    }
-
     private func saveLicenseKey(_ key: String) {
         saveString(key, forKey: licenseKey)
     }
@@ -286,60 +200,10 @@ final class TrialManager {
     // MARK: - Debug Methods
 
     #if DEBUG
-    var debugInfo: (startDate: String, lastUsed: String, status: String) {
-        let formatter = DateFormatter()
-        formatter.dateStyle = .short
-        formatter.timeStyle = .short
-
-        let start = trialStartDate.map { formatter.string(from: $0) } ?? "nil"
-        let last = lastUsedDate.map { formatter.string(from: $0) } ?? "nil"
-
-        let statusStr: String
-        switch status {
-        case .active(let days):
-            statusStr = "Active (\(days)d left)"
-        case .expired:
-            statusStr = "Expired"
-        case .licensed:
-            statusStr = "Licensed"
-        }
-
-        return (start, last, statusStr)
-    }
-
     /// Saves a fake license locally WITHOUT LemonSqueezy validation —
     /// the real activateLicense would reject any non-purchased key.
     func debugActivateLicense() {
         saveLicenseKey("DEBUG-LICENSE-KEY")
-    }
-
-    /// Simulates a fresh install: no trial ever started, no license —
-    /// the state every new (free-tier) user lands in.
-    func debugClearTrial() {
-        deleteString(forKey: trialStartKey)
-        deleteString(forKey: lastUsedKey)
-        deleteLicenseKey()
-    }
-
-    func debugResetTrial() {
-        let now = Date()
-        saveDate(now, forKey: trialStartKey)
-        saveDate(now, forKey: lastUsedKey)
-        deleteLicenseKey()
-    }
-
-    func debugExpireTrial() {
-        let expiredDate = Calendar.current.date(byAdding: .day, value: -(trialDays + 1), to: Date())!
-        saveDate(expiredDate, forKey: trialStartKey)
-        saveDate(Date(), forKey: lastUsedKey)
-        deleteLicenseKey()
-    }
-
-    func debugSetDaysLeft(_ days: Int) {
-        let startDate = Calendar.current.date(byAdding: .day, value: -(trialDays - days), to: Date())!
-        saveDate(startDate, forKey: trialStartKey)
-        saveDate(Date(), forKey: lastUsedKey)
-        deleteLicenseKey()
     }
     #endif
 }

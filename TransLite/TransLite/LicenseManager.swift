@@ -2,16 +2,31 @@ import Foundation
 import Security
 import IOKit
 
+/// Which product a license key belongs to.
+enum LicenseKind: String {
+    /// Pro subscription: translations run through our proxy with high limits.
+    case pro
+    /// Lifetime BYOK license: unlocks configuring the user's own API keys.
+    case byok
+}
+
 /// Manages license validation and the per-device identifier, both persisted
-/// in the Keychain. The app has two states: free tier (default) or licensed
-/// (unlocks BYOK).
+/// in the Keychain. The app has three states: free tier (default), Pro
+/// subscriber, or BYOK licensed.
 final class LicenseManager {
     static let shared = LicenseManager()
+
+    // LemonSqueezy product ids, used to tell a Pro subscription key from a
+    // BYOK lifetime key. TODO: set the real Pro product id from the
+    // LemonSqueezy dashboard. While it is 0, every key resolves to BYOK,
+    // which matches the pre-subscription behavior.
+    private static let proProductID = 0
 
     // Keep the historical service name: existing licenses and instance ids
     // were stored under it before the trial was removed.
     private let service = "com.translite.trial"
     private let licenseKey = "license-key"
+    private let licenseKindKey = "license-kind"
 
     private init() {}
 
@@ -19,6 +34,20 @@ final class LicenseManager {
 
     var isLicensed: Bool {
         getLicenseKey() != nil
+    }
+
+    /// The stored license key, needed by the proxy for Pro requests.
+    var storedLicenseKey: String? {
+        getLicenseKey()
+    }
+
+    /// Kind of the stored license. Licenses saved before kinds existed
+    /// (early BYOK buyers) have no stored kind and default to .byok.
+    var licenseKind: LicenseKind? {
+        guard isLicensed else { return nil }
+        guard let raw = getString(forKey: licenseKindKey),
+              let kind = LicenseKind(rawValue: raw) else { return .byok }
+        return kind
     }
 
     /// Validates and saves a license key using LemonSqueezy API
@@ -29,17 +58,19 @@ final class LicenseManager {
         guard !trimmedKey.isEmpty else { return false }
 
         // Validate against LemonSqueezy API
-        let isValid = await validateWithLemonSqueezy(trimmedKey)
-
-        if isValid {
-            saveLicenseKey(trimmedKey)
+        guard let productID = await validateWithLemonSqueezy(trimmedKey) else {
+            return false
         }
 
-        return isValid
+        saveLicenseKey(trimmedKey)
+        let kind: LicenseKind = productID == Self.proProductID ? .pro : .byok
+        saveString(kind.rawValue, forKey: licenseKindKey)
+        return true
     }
 
     /// Validates a license key with LemonSqueezy's API
-    private func validateWithLemonSqueezy(_ licenseKey: String) async -> Bool {
+    /// - Returns: the product id of the license when valid, nil otherwise
+    private func validateWithLemonSqueezy(_ licenseKey: String) async -> Int? {
         let url = URL(string: "https://api.lemonsqueezy.com/v1/licenses/activate")!
 
         var request = URLRequest(url: url)
@@ -61,39 +92,43 @@ final class LicenseManager {
             let (data, response) = try await URLSession.shared.data(for: request)
 
             guard let httpResponse = response as? HTTPURLResponse else {
-                return false
+                return nil
             }
 
             // 200 = activated, 400 = already activated (which is fine)
             if httpResponse.statusCode == 200 || httpResponse.statusCode == 400 {
                 // Parse response to check if valid
                 if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
+                    let meta = json["meta"] as? [String: Any]
+                    // product_id distinguishes Pro subscription from BYOK
+                    let productID = meta?["product_id"] as? Int ?? -1
+
                     // Check if license is valid (activated or already activated)
                     if let activated = json["activated"] as? Bool, activated {
-                        return true
+                        return productID
                     }
                     // Check for "already activated" error (still valid)
                     if let error = json["error"] as? String,
                        error.contains("already") {
-                        return true
+                        return productID
                     }
                     // Check meta for valid status
-                    if let meta = json["meta"] as? [String: Any],
-                       let valid = meta["valid"] as? Bool {
-                        return valid
+                    if let valid = meta?["valid"] as? Bool, valid {
+                        return productID
                     }
                 }
             }
 
-            return false
+            return nil
         } catch {
             print("License validation error: \(error)")
-            return false
+            return nil
         }
     }
 
     func removeLicense() {
         deleteLicenseKey()
+        deleteString(forKey: licenseKindKey)
     }
 
     // MARK: - Device Identity
@@ -188,13 +223,17 @@ final class LicenseManager {
         getString(forKey: licenseKey)
     }
 
-    private func deleteLicenseKey() {
+    private func deleteString(forKey key: String) {
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: service,
-            kSecAttrAccount as String: licenseKey
+            kSecAttrAccount as String: key
         ]
         SecItemDelete(query as CFDictionary)
+    }
+
+    private func deleteLicenseKey() {
+        deleteString(forKey: licenseKey)
     }
 
     // MARK: - Debug Methods
@@ -202,8 +241,9 @@ final class LicenseManager {
     #if DEBUG
     /// Saves a fake license locally WITHOUT LemonSqueezy validation —
     /// the real activateLicense would reject any non-purchased key.
-    func debugActivateLicense() {
+    func debugActivateLicense(kind: LicenseKind) {
         saveLicenseKey("DEBUG-LICENSE-KEY")
+        saveString(kind.rawValue, forKey: licenseKindKey)
     }
     #endif
 }

@@ -1,13 +1,67 @@
 import type { TierName } from "./config";
 import type { Env } from "./providers";
 
-/// Resolves which tier a request belongs to.
-///
-/// TODO(subscription): validate `licenseKey` against LemonSqueezy
-/// (POST https://api.lemonsqueezy.com/v1/licenses/validate), cache the
-/// verdict in KV under `license:${key}` with a 24h TTL so LemonSqueezy is
-/// hit at most once a day per device, and return "pro" on success.
-/// Then flip TIERS.pro.enabled in config.ts.
-export async function resolveTier(_env: Env, _licenseKey: string | undefined): Promise<TierName> {
-  return "free";
+// LemonSqueezy product that grants the pro tier (the Pro subscription).
+// Keys from any other product (e.g. the BYOK lifetime license) resolve to
+// free — BYOK users talk to the providers directly and never need the proxy.
+// TODO: set the real product id from the LemonSqueezy dashboard.
+const PRO_PRODUCT_ID = 0;
+
+// Positive verdicts are cached for a day; rejections only briefly, so a
+// just-purchased key doesn't stay stuck on free.
+const PRO_CACHE_TTL_SECONDS = 24 * 60 * 60;
+const REJECTED_CACHE_TTL_SECONDS = 5 * 60;
+
+interface CachedVerdict {
+  tier: TierName;
+}
+
+/// Resolves which tier a request belongs to. Verdicts are cached in KV for
+/// 24h so LemonSqueezy is hit at most once a day per key — meaning a
+/// cancelled subscription can keep pro access for up to a day, which is an
+/// accepted trade-off.
+export async function resolveTier(env: Env, licenseKey: string | undefined): Promise<TierName> {
+  if (!licenseKey || PRO_PRODUCT_ID === 0) return "free";
+
+  // License keys are UUIDs; reject junk before caching or calling out.
+  if (!/^[A-Za-z0-9-]{8,64}$/.test(licenseKey)) return "free";
+
+  const cacheKey = `license:${licenseKey}`;
+  const cached = await env.QUOTA.get<CachedVerdict>(cacheKey, "json");
+  if (cached) return cached.tier;
+
+  const tier = await validateWithLemonSqueezy(licenseKey);
+  await env.QUOTA.put(cacheKey, JSON.stringify({ tier } satisfies CachedVerdict), {
+    expirationTtl: tier === "pro" ? PRO_CACHE_TTL_SECONDS : REJECTED_CACHE_TTL_SECONDS,
+  });
+  return tier;
+}
+
+async function validateWithLemonSqueezy(licenseKey: string): Promise<TierName> {
+  try {
+    const res = await fetch("https://api.lemonsqueezy.com/v1/licenses/validate", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Accept": "application/json",
+      },
+      body: JSON.stringify({ license_key: licenseKey }),
+    });
+
+    if (!res.ok) return "free";
+
+    const data = await res.json<{
+      valid?: boolean;
+      meta?: { product_id?: number };
+    }>();
+
+    if (data.valid === true && data.meta?.product_id === PRO_PRODUCT_ID) {
+      return "pro";
+    }
+    return "free";
+  } catch {
+    // LemonSqueezy being unreachable must not break translations;
+    // fail towards the free tier.
+    return "free";
+  }
 }

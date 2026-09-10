@@ -29,10 +29,10 @@ export const TIERS: Record<TierName, TierConfig> = {
     model: "gpt-4o-mini",
     maxTokens: 2048,
   },
-  // Subscription tier. Flip `enabled` once LemonSqueezy validation
-  // is implemented in license.ts (see TODO there).
+  // Subscription tier. Inert until PRO_PRODUCT_ID is set in license.ts —
+  // without it every key resolves to free.
   pro: {
-    enabled: false,
+    enabled: true,
     maxChars: 10000,
     dailyQuota: 500,
     allowedTargets: null,

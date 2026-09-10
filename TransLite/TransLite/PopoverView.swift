@@ -39,7 +39,9 @@ struct PopoverView: View {
                 } else if showingShortcutConfig {
                     shortcutConfigCard
                 } else {
-                    if !isLicensed {
+                    // BYOK licensees need no plan card; everyone else sees
+                    // their plan state (free, Pro, or license required)
+                    if viewModel.licenseKind != .byok {
                         planSection
                     }
 
@@ -157,15 +159,17 @@ struct PopoverView: View {
     }
 
     private var planSection: some View {
-        let quota = viewModel.freeLimits.dailyQuota ?? 20
+        let isPro = viewModel.licenseKind == .pro
+        let limits = isPro ? ProxyClient.shared.proLimits : viewModel.freeLimits
+        let quota = limits.dailyQuota ?? 20
         let remaining = viewModel.freeQuotaRemaining ?? quota
 
         return VStack(spacing: 0) {
             // Plan status section
             VStack(spacing: 8) {
-                if viewModel.usesFreeTier {
+                if isPro || viewModel.usesFreeTier {
                     HStack(alignment: .firstTextBaseline) {
-                        Text("Free plan")
+                        Text(isPro ? "Pro plan" : "Free plan")
                             .font(.system(size: 13, weight: .semibold))
 
                         Spacer()
@@ -173,6 +177,15 @@ struct PopoverView: View {
                         Text("\(remaining) left today")
                             .font(.system(size: 10))
                             .foregroundColor(.secondary)
+
+                        if !isPro {
+                            Button("Go Pro") {
+                                viewModel.openProCheckout(source: "plan_card")
+                            }
+                            .font(.system(size: 9, weight: .medium))
+                            .buttonStyle(.borderedProminent)
+                            .controlSize(.small)
+                        }
                     }
 
                     // Fills up as the daily quota is consumed
@@ -189,6 +202,9 @@ struct PopoverView: View {
             .background(byokBlocked ? Color.red.opacity(0.15) : Color.accentColor.opacity(0.15))
 
             // License section
+            // Pro subscribers already activated their license; only free
+            // and blocked states need the purchase/activation row
+            if !isPro {
             VStack(spacing: 0) {
                 // License row
                 HStack {
@@ -245,6 +261,7 @@ struct PopoverView: View {
                 }
             }
             .background(byokBlocked ? Color.red.opacity(0.1) : Color.accentColor.opacity(0.1))
+            }
         }
         .cornerRadius(cardCornerRadius)
     }
@@ -1229,7 +1246,7 @@ private struct DebugMenu: View {
         let quotaLeft = viewModel.freeQuotaRemaining.map(String.init) ?? "full?"
         let quota = viewModel.freeLimits.dailyQuota.map(String.init) ?? "∞"
         return """
-        Plan: \(viewModel.isLicensed ? "licensed" : "free")
+        Plan: \(viewModel.licenseKind?.rawValue ?? "free")
         Keys: \(keys.isEmpty ? "none" : keys.joined(separator: ", "))
         Quota left: \(quotaLeft)/\(quota)
         """
@@ -1250,8 +1267,12 @@ private struct DebugMenu: View {
             Divider()
 
             Section("License") {
-                Button("Activate Fake License (offline)") {
-                    LicenseManager.shared.debugActivateLicense()
+                Button("Fake Pro Subscription (offline)") {
+                    LicenseManager.shared.debugActivateLicense(kind: .pro)
+                    viewModel.refreshLicenseStatus()
+                }
+                Button("Fake BYOK License (offline)") {
+                    LicenseManager.shared.debugActivateLicense(kind: .byok)
                     viewModel.refreshLicenseStatus()
                 }
                 Button("Remove License (Free plan)") {

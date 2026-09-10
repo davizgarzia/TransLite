@@ -22,6 +22,7 @@ final class ProxyClient {
     }
 
     private(set) var freeLimits = TierLimits(maxChars: 1000, dailyQuota: 20, allowedTargets: ["English"])
+    private(set) var proLimits = TierLimits(maxChars: 10000, dailyQuota: 500, allowedTargets: nil)
 
     /// Translations left today for this device, from the last response's
     /// X-Quota-Remaining header. Persisted per UTC day (the server's reset
@@ -95,24 +96,40 @@ final class ProxyClient {
         } else {
             UserDefaults.standard.removeObject(forKey: "freeTierTargets")
         }
+
+        if let pro = decoded.tiers["pro"] {
+            proLimits = TierLimits(
+                maxChars: pro.max_chars,
+                dailyQuota: pro.daily_quota,
+                allowedTargets: pro.target_languages
+            )
+        }
     }
 
     // MARK: - Completion
 
-    func translate(text: String, targetLanguage: String, tone: TranslationTone) async throws -> String {
-        try await send(path: "v1/translate", body: [
+    func translate(text: String, targetLanguage: String, tone: TranslationTone, licenseKey: String? = nil) async throws -> String {
+        var body = [
             "text": text,
             "target_language": targetLanguage,
             "tone": tone.rawValue,
             "device_id": LicenseManager.shared.deviceId
-        ])
+        ]
+        if let licenseKey {
+            body["license_key"] = licenseKey
+        }
+        return try await send(path: "v1/translate", body: body)
     }
 
-    func improve(text: String) async throws -> String {
-        try await send(path: "v1/improve", body: [
+    func improve(text: String, licenseKey: String? = nil) async throws -> String {
+        var body = [
             "text": text,
             "device_id": LicenseManager.shared.deviceId
-        ])
+        ]
+        if let licenseKey {
+            body["license_key"] = licenseKey
+        }
+        return try await send(path: "v1/improve", body: body)
     }
 
     private func send(path: String, body: [String: String]) async throws -> String {

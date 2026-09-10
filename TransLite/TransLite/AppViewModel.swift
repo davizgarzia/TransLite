@@ -125,8 +125,12 @@ final class AppViewModel: ObservableObject {
     @Published var hasAccessibilityPermission: Bool = false
 
     // License
-    @Published var isLicensed: Bool = false
+    @Published var licenseKind: LicenseKind? = nil
     @Published var licenseKeyInput: String = ""
+
+    var isLicensed: Bool {
+        licenseKind != nil
+    }
     @Published var isActivatingLicense: Bool = false
 
     // Onboarding (free-first: no API key step — BYOK setup lives in
@@ -141,24 +145,23 @@ final class AppViewModel: ObservableObject {
     // MARK: - Backend Resolution
 
     /// How a translation/improvement request is fulfilled: with the user's
-    /// own key (BYOK, direct to the provider) or through our proxy Worker
-    /// on the free tier.
+    /// own key (BYOK, direct to the provider) or through our proxy Worker —
+    /// free tier when licenseKey is nil, Pro subscription otherwise.
     enum TranslationBackend {
         case byok(provider: APIProvider, apiKey: String)
-        case freeTier
+        case proxy(licenseKey: String?)
     }
 
-    /// Free tier applies when the user has no API key configured at all.
-    /// If a key exists for another provider, we keep the explicit
-    /// "no key for selected provider" error instead of silently proxying.
+    /// Free tier applies when there is no license of any kind and no API
+    /// key configured at all.
     var usesFreeTier: Bool {
-        !hasAPIKey && !hasClaudeAPIKey
+        licenseKind == nil && !hasAPIKey && !hasClaudeAPIKey
     }
 
     /// Whether the BYOK settings (provider picker, API keys) should be
-    /// offered at all. Free users never see key configuration.
+    /// offered at all. Only the lifetime BYOK license unlocks them.
     var canConfigureBYOK: Bool {
-        isLicensed
+        licenseKind == .byok
     }
 
     // MARK: - Private Properties
@@ -213,7 +216,7 @@ final class AppViewModel: ObservableObject {
         // Check accessibility permission
         self.hasAccessibilityPermission = accessibility.hasAccessibilityPermission
 
-        self.isLicensed = licenseManager.isLicensed
+        self.licenseKind = licenseManager.licenseKind
 
         // Set onboarding step - determine WITHOUT accessing Keychain yet
         // to avoid triggering the Keychain permission dialog before UI is ready
@@ -370,8 +373,13 @@ final class AppViewModel: ObservableObject {
     private func resolveBackend() -> TranslationBackend? {
         refreshLicenseStatus()
 
+        // Pro subscribers always go through the proxy with their key
+        if licenseKind == .pro, let key = licenseManager.storedLicenseKey {
+            return .proxy(licenseKey: key)
+        }
+
         if usesFreeTier {
-            return .freeTier
+            return .proxy(licenseKey: nil)
         }
 
         // BYOK requires a license
@@ -399,8 +407,14 @@ final class AppViewModel: ObservableObject {
     private static func analyticsProvider(for backend: TranslationBackend) -> String {
         switch backend {
         case .byok(let provider, _): return provider.rawValue
-        case .freeTier: return "free_tier"
+        case .proxy(let licenseKey): return licenseKey == nil ? "free_tier" : "pro"
         }
+    }
+
+    /// Limits that apply to a proxied backend, nil for BYOK.
+    private func proxyLimits(for backend: TranslationBackend) -> ProxyClient.TierLimits? {
+        guard case .proxy(let licenseKey) = backend else { return nil }
+        return licenseKey == nil ? proxy.freeLimits : proxy.proLimits
     }
 
     /// Shows an error in the HUD long enough to be read before the caller
@@ -443,32 +457,32 @@ final class AppViewModel: ObservableObject {
                 return
             }
 
-            // Free tier: reject over-limit text before spending a request
-            if case .freeTier = backend, text.count > proxy.freeLimits.maxChars {
-                statusMessage = "Text too long (max \(proxy.freeLimits.maxChars) characters)"
-                AnalyticsClient.track("translation_failed", properties: [
-                    "provider": .string(providerLabel),
-                    "reason": .string("text_too_long")
-                ])
-                await flashHUDError(statusMessage)
-                hud.hide()
-                isTranslating = false
-                return
-            }
+            // Proxied tiers: enforce limits before spending a request
+            if let limits = proxyLimits(for: backend) {
+                if text.count > limits.maxChars {
+                    statusMessage = "Text too long (max \(limits.maxChars) characters)"
+                    AnalyticsClient.track("translation_failed", properties: [
+                        "provider": .string(providerLabel),
+                        "reason": .string("text_too_long")
+                    ])
+                    await flashHUDError(statusMessage)
+                    hud.hide()
+                    isTranslating = false
+                    return
+                }
 
-            // Free tier: only the allowed target languages (English)
-            if case .freeTier = backend,
-               let allowedTargets = proxy.freeLimits.allowedTargets,
-               !allowedTargets.contains(targetLanguage.rawValue) {
-                statusMessage = "Free plan translates to \(allowedTargets.joined(separator: ", ")) only"
-                AnalyticsClient.track("translation_failed", properties: [
-                    "provider": .string(providerLabel),
-                    "reason": .string("language_not_allowed")
-                ])
-                await flashHUDError(statusMessage)
-                hud.hide()
-                isTranslating = false
-                return
+                if let allowedTargets = limits.allowedTargets,
+                   !allowedTargets.contains(targetLanguage.rawValue) {
+                    statusMessage = "Free plan translates to \(allowedTargets.joined(separator: ", ")) only"
+                    AnalyticsClient.track("translation_failed", properties: [
+                        "provider": .string(providerLabel),
+                        "reason": .string("language_not_allowed")
+                    ])
+                    await flashHUDError(statusMessage)
+                    hud.hide()
+                    isTranslating = false
+                    return
+                }
             }
 
             statusMessage = "Translating..."
@@ -499,11 +513,12 @@ final class AppViewModel: ObservableObject {
                         targetLanguage: targetLanguage.rawValue,
                         tone: translationTone.promptInstruction
                     )
-                case .freeTier:
+                case .proxy(let licenseKey):
                     translated = try await proxy.translate(
                         text: text,
                         targetLanguage: targetLanguage.rawValue,
-                        tone: translationTone
+                        tone: translationTone,
+                        licenseKey: licenseKey
                     )
                 }
 
@@ -534,7 +549,7 @@ final class AppViewModel: ObservableObject {
                         }
                     }
 
-                    if case .freeTier = backend, let remaining = proxy.quotaRemaining {
+                    if case .proxy = backend, let remaining = proxy.quotaRemaining {
                         statusMessage += " · \(remaining) left today"
                     }
 
@@ -561,7 +576,7 @@ final class AppViewModel: ObservableObject {
                 AnalyticsClient.track("translation_failed", properties: failedProperties)
             }
 
-            if case .freeTier = backend {
+            if case .proxy = backend {
                 freeQuotaRemaining = proxy.quotaRemaining
             }
 
@@ -602,9 +617,9 @@ final class AppViewModel: ObservableObject {
                 return
             }
 
-            // Free tier: reject over-limit text before spending a request
-            if case .freeTier = backend, text.count > proxy.freeLimits.maxChars {
-                statusMessage = "Text too long (max \(proxy.freeLimits.maxChars) characters)"
+            // Proxied tiers: reject over-limit text before spending a request
+            if let limits = proxyLimits(for: backend), text.count > limits.maxChars {
+                statusMessage = "Text too long (max \(limits.maxChars) characters)"
                 AnalyticsClient.track("improvement_failed", properties: [
                     "provider": .string(providerLabel),
                     "reason": .string("text_too_long")
@@ -637,8 +652,8 @@ final class AppViewModel: ObservableObject {
                         text: text,
                         apiKey: apiKey
                     )
-                case .freeTier:
-                    improved = try await proxy.improve(text: text)
+                case .proxy(let licenseKey):
+                    improved = try await proxy.improve(text: text, licenseKey: licenseKey)
                 }
 
                 // Write to clipboard
@@ -668,7 +683,7 @@ final class AppViewModel: ObservableObject {
                         }
                     }
 
-                    if case .freeTier = backend, let remaining = proxy.quotaRemaining {
+                    if case .proxy = backend, let remaining = proxy.quotaRemaining {
                         statusMessage += " · \(remaining) left today"
                     }
 
@@ -695,7 +710,7 @@ final class AppViewModel: ObservableObject {
                 AnalyticsClient.track("improvement_failed", properties: failedProperties)
             }
 
-            if case .freeTier = backend {
+            if case .proxy = backend {
                 freeQuotaRemaining = proxy.quotaRemaining
             }
 
@@ -810,7 +825,7 @@ final class AppViewModel: ObservableObject {
     // MARK: - License
 
     func refreshLicenseStatus() {
-        isLicensed = licenseManager.isLicensed
+        licenseKind = licenseManager.licenseKind
     }
 
     func activateLicense() {
@@ -828,7 +843,7 @@ final class AppViewModel: ObservableObject {
             let success = await licenseManager.activateLicense(trimmedKey)
 
             if success {
-                isLicensed = licenseManager.isLicensed
+                licenseKind = licenseManager.licenseKind
                 licenseKeyInput = ""
                 statusMessage = "License activated!"
             } else {
@@ -839,8 +854,26 @@ final class AppViewModel: ObservableObject {
         }
     }
 
-    func openPurchasePage() {
+    /// Opens the BYOK lifetime license checkout.
+    func openPurchasePage(source: String = "license_row") {
+        AnalyticsClient.track("purchase_click", properties: [
+            "product": .string("byok"),
+            "source": .string(source)
+        ])
         if let url = URL(string: "https://translite.lemonsqueezy.com/checkout/buy/02a955f2-5f2b-4bb0-a70d-21b3acb3ef2f") {
+            NSWorkspace.shared.open(url)
+        }
+    }
+
+    /// Opens the Pro subscription checkout.
+    /// TODO: set the real checkout URL once the Pro product exists in
+    /// LemonSqueezy.
+    func openProCheckout(source: String = "plan_card") {
+        AnalyticsClient.track("purchase_click", properties: [
+            "product": .string("pro"),
+            "source": .string(source)
+        ])
+        if let url = URL(string: "https://translite.lemonsqueezy.com/checkout/buy/REPLACE-WITH-PRO-CHECKOUT") {
             NSWorkspace.shared.open(url)
         }
     }

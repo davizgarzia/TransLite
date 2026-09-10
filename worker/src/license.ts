@@ -5,8 +5,7 @@ import type { Env } from "./providers";
 // Keys from any other product (e.g. the BYOK lifetime license) resolve to
 // free — BYOK users talk to the providers directly and never need the proxy.
 const PRO_PRODUCT_IDS = new Set([
-  1352278, // TransLite Pro (live)
-  1352332, // TransLite Pro test-mode duplicate — REMOVE before launch
+  1352278, // TransLite Pro
 ]);
 
 // Positive verdicts are cached for a day; rejections only briefly, so a

@@ -19,8 +19,7 @@ final class LicenseManager {
     // LemonSqueezy product ids used to tell a Pro subscription key from a
     // BYOK lifetime key. Must match PRO_PRODUCT_IDS in worker/src/license.ts.
     private static let proProductIDs: Set<Int> = [
-        1352278, // TransLite Pro (live)
-        1352332  // TransLite Pro test-mode duplicate - REMOVE before launch
+        1352278  // TransLite Pro
     ]
 
     // Keep the historical service name: existing licenses and instance ids

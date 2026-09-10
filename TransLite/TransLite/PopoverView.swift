@@ -176,7 +176,7 @@ struct PopoverView: View {
     }
 
     private var trialSection: some View {
-        let quota = ProxyClient.shared.freeLimits.dailyQuota ?? 20
+        let quota = viewModel.freeLimits.dailyQuota ?? 20
         let remaining = viewModel.freeQuotaRemaining ?? quota
 
         return VStack(spacing: 0) {
@@ -292,12 +292,12 @@ struct PopoverView: View {
     /// (free tier only translates to the server-allowed list).
     private func isLanguageLocked(_ language: TargetLanguage) -> Bool {
         guard viewModel.usesFreeTier,
-              let allowed = ProxyClient.shared.freeLimits.allowedTargets else { return false }
+              let allowed = viewModel.freeLimits.allowedTargets else { return false }
         return !allowed.contains(language.rawValue)
     }
 
     private var lockedLanguageHint: String {
-        let allowed = (ProxyClient.shared.freeLimits.allowedTargets ?? []).joined(separator: ", ")
+        let allowed = (viewModel.freeLimits.allowedTargets ?? []).joined(separator: ", ")
         return "Free plan translates to \(allowed) only — upgrade to unlock"
     }
 
@@ -439,7 +439,7 @@ struct PopoverView: View {
                     .foregroundColor(.orange)
                     .padding(.horizontal, 10)
                     .padding(.vertical, 4)
-                    .background(Color.orange.opacity(0.25))
+                    .background(Color.orange.opacity(0.15))
                     .cornerRadius(5)
             }
             .buttonStyle(.plain)

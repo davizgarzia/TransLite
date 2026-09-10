@@ -119,6 +119,9 @@ final class AppViewModel: ObservableObject {
     /// Free-tier translations left today, for the plan card's progress bar.
     /// nil = no proxied request yet today (assume full quota).
     @Published var freeQuotaRemaining: Int? = ProxyClient.shared.quotaRemaining
+    /// Free-tier limits mirrored from ProxyClient so views re-render when
+    /// the server config arrives at launch.
+    @Published var freeLimits = ProxyClient.shared.freeLimits
     @Published var hasAccessibilityPermission: Bool = false
 
     // Trial & License
@@ -233,8 +236,9 @@ final class AppViewModel: ObservableObject {
         }
 
         // Keep free-tier limits in sync with the server (fire and forget)
-        Task {
+        Task { [weak self] in
             await ProxyClient.shared.refreshLimits()
+            self?.freeLimits = ProxyClient.shared.freeLimits
         }
     }
 

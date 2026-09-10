@@ -1,0 +1,9 @@
+name = "translite-api"
+main = "src/index.ts"
+compatibility_date = "2026-09-01"
+
+# Create with: npx wrangler kv namespace create QUOTA
+# then paste the generated id here.
+kv_namespaces = [
+  { binding = "QUOTA", id = "05cbd447d2f6475d9033aa0ebb4d15c0" }
+]

@@ -45,9 +45,14 @@ enum AnalyticsClient {
     private static let dispatcher = AnalyticsDispatcher()
 
     static func track(_ event: String, properties: [String: AnalyticsValue] = [:]) {
+        #if DEBUG
+        // Dev builds never send events - log locally instead
+        print("[Analytics] \(event) \(properties)")
+        #else
         Task(priority: .utility) {
             await dispatcher.enqueue(event: event, properties: properties)
         }
+        #endif
     }
 }
 

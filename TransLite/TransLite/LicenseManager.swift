@@ -2,97 +2,52 @@ import Foundation
 import Security
 import IOKit
 
-/// Manages trial period and license validation using Keychain for persistence
-final class TrialManager {
-    static let shared = TrialManager()
+/// Which product a license key belongs to.
+enum LicenseKind: String {
+    /// Pro subscription: translations run through our proxy with high limits.
+    case pro
+    /// Lifetime BYOK license: unlocks configuring the user's own API keys.
+    case byok
+}
 
+/// Manages license validation and the per-device identifier, both persisted
+/// in the Keychain. The app has three states: free tier (default), Pro
+/// subscriber, or BYOK licensed.
+final class LicenseManager {
+    static let shared = LicenseManager()
+
+    // LemonSqueezy product ids used to tell a Pro subscription key from a
+    // BYOK lifetime key. Must match PRO_PRODUCT_IDS in worker/src/license.ts.
+    private static let proProductIDs: Set<Int> = [
+        1352278  // TransLite Pro
+    ]
+
+    // Keep the historical service name: existing licenses and instance ids
+    // were stored under it before the trial was removed.
     private let service = "com.translite.trial"
-    private let trialStartKey = "trial-start-date"
-    private let lastUsedKey = "last-used-date"
     private let licenseKey = "license-key"
-
-    private let trialDays = 7
+    private let licenseKindKey = "license-kind"
 
     private init() {}
-
-    // MARK: - Trial Status
-
-    enum TrialStatus {
-        case active(daysRemaining: Int)
-        case expired
-        case licensed
-    }
-
-    /// Returns the current trial status
-    var status: TrialStatus {
-        // Check if licensed first
-        if isLicensed {
-            return .licensed
-        }
-
-        // Check for date manipulation
-        if hasDateBeenManipulated {
-            return .expired
-        }
-
-        // Calculate days remaining
-        guard let startDate = trialStartDate else {
-            // First launch - start trial
-            startTrial()
-            return .active(daysRemaining: trialDays)
-        }
-
-        let daysPassed = Calendar.current.dateComponents([.day], from: startDate, to: Date()).day ?? 0
-        let daysRemaining = max(0, trialDays - daysPassed)
-
-        if daysRemaining > 0 {
-            return .active(daysRemaining: daysRemaining)
-        } else {
-            return .expired
-        }
-    }
-
-    /// Whether the app can be used (trial active or licensed)
-    var canUseApp: Bool {
-        switch status {
-        case .active, .licensed:
-            return true
-        case .expired:
-            return false
-        }
-    }
-
-    /// Updates the last used date - call this on each app launch
-    func recordUsage() {
-        saveDate(Date(), forKey: lastUsedKey)
-    }
-
-    // MARK: - Trial Management
-
-    private var trialStartDate: Date? {
-        getDate(forKey: trialStartKey)
-    }
-
-    private var lastUsedDate: Date? {
-        getDate(forKey: lastUsedKey)
-    }
-
-    private var hasDateBeenManipulated: Bool {
-        guard let lastUsed = lastUsedDate else { return false }
-        // If current date is before last used date, user manipulated system clock
-        return Date() < lastUsed
-    }
-
-    private func startTrial() {
-        let now = Date()
-        saveDate(now, forKey: trialStartKey)
-        saveDate(now, forKey: lastUsedKey)
-    }
 
     // MARK: - License Management
 
     var isLicensed: Bool {
         getLicenseKey() != nil
+    }
+
+    /// The stored license key, needed by the proxy for Pro requests.
+    var storedLicenseKey: String? {
+        getLicenseKey()
+    }
+
+    /// Kind of the stored license. Licenses saved before kinds existed
+    /// (early BYOK buyers) have no stored kind and default to .byok.
+    var licenseKind: LicenseKind? {
+        guard isLicensed else { return nil }
+        guard let raw = getString(forKey: licenseKindKey),
+              let kind = LicenseKind(rawValue: raw) else { return .byok }
+        return kind
     }
 
     /// Validates and saves a license key using LemonSqueezy API
@@ -103,17 +58,19 @@ final class TrialManager {
         guard !trimmedKey.isEmpty else { return false }
 
         // Validate against LemonSqueezy API
-        let isValid = await validateWithLemonSqueezy(trimmedKey)
-
-        if isValid {
-            saveLicenseKey(trimmedKey)
+        guard let productID = await validateWithLemonSqueezy(trimmedKey) else {
+            return false
         }
 
-        return isValid
+        saveLicenseKey(trimmedKey)
+        let kind: LicenseKind = Self.proProductIDs.contains(productID) ? .pro : .byok
+        saveString(kind.rawValue, forKey: licenseKindKey)
+        return true
     }
 
     /// Validates a license key with LemonSqueezy's API
-    private func validateWithLemonSqueezy(_ licenseKey: String) async -> Bool {
+    /// - Returns: the product id of the license when valid, nil otherwise
+    private func validateWithLemonSqueezy(_ licenseKey: String) async -> Int? {
         let url = URL(string: "https://api.lemonsqueezy.com/v1/licenses/activate")!
 
         var request = URLRequest(url: url)
@@ -135,35 +92,51 @@ final class TrialManager {
             let (data, response) = try await URLSession.shared.data(for: request)
 
             guard let httpResponse = response as? HTTPURLResponse else {
-                return false
+                return nil
             }
 
             // 200 = activated, 400 = already activated (which is fine)
             if httpResponse.statusCode == 200 || httpResponse.statusCode == 400 {
                 // Parse response to check if valid
                 if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
+                    let meta = json["meta"] as? [String: Any]
+                    // product_id distinguishes Pro subscription from BYOK
+                    let productID = meta?["product_id"] as? Int ?? -1
+
                     // Check if license is valid (activated or already activated)
                     if let activated = json["activated"] as? Bool, activated {
-                        return true
+                        return productID
                     }
                     // Check for "already activated" error (still valid)
                     if let error = json["error"] as? String,
                        error.contains("already") {
-                        return true
+                        return productID
                     }
                     // Check meta for valid status
-                    if let meta = json["meta"] as? [String: Any],
-                       let valid = meta["valid"] as? Bool {
-                        return valid
+                    if let valid = meta?["valid"] as? Bool, valid {
+                        return productID
                     }
                 }
             }
 
-            return false
+            return nil
         } catch {
             print("License validation error: \(error)")
-            return false
+            return nil
         }
+    }
+
+    func removeLicense() {
+        deleteLicenseKey()
+        deleteString(forKey: licenseKindKey)
+    }
+
+    // MARK: - Device Identity
+
+    /// Stable per-Mac identifier, also used by the free-tier proxy for
+    /// daily quota accounting.
+    var deviceId: String {
+        getOrCreateInstanceId()
     }
 
     /// Gets or creates a unique instance identifier for this Mac
@@ -198,22 +171,7 @@ final class TrialManager {
         return uuid
     }
 
-    func removeLicense() {
-        deleteLicenseKey()
-    }
-
     // MARK: - Keychain Helpers
-
-    private func saveDate(_ date: Date, forKey key: String) {
-        let timestamp = String(date.timeIntervalSince1970)
-        saveString(timestamp, forKey: key)
-    }
-
-    private func getDate(forKey key: String) -> Date? {
-        guard let timestamp = getString(forKey: key),
-              let interval = Double(timestamp) else { return nil }
-        return Date(timeIntervalSince1970: interval)
-    }
 
     private func saveString(_ value: String, forKey key: String) {
         guard let data = value.data(using: .utf8) else { return }
@@ -265,58 +223,27 @@ final class TrialManager {
         getString(forKey: licenseKey)
     }
 
-    private func deleteLicenseKey() {
+    private func deleteString(forKey key: String) {
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: service,
-            kSecAttrAccount as String: licenseKey
+            kSecAttrAccount as String: key
         ]
         SecItemDelete(query as CFDictionary)
+    }
+
+    private func deleteLicenseKey() {
+        deleteString(forKey: licenseKey)
     }
 
     // MARK: - Debug Methods
 
     #if DEBUG
-    var debugInfo: (startDate: String, lastUsed: String, status: String) {
-        let formatter = DateFormatter()
-        formatter.dateStyle = .short
-        formatter.timeStyle = .short
-
-        let start = trialStartDate.map { formatter.string(from: $0) } ?? "nil"
-        let last = lastUsedDate.map { formatter.string(from: $0) } ?? "nil"
-
-        let statusStr: String
-        switch status {
-        case .active(let days):
-            statusStr = "Active (\(days)d left)"
-        case .expired:
-            statusStr = "Expired"
-        case .licensed:
-            statusStr = "Licensed"
-        }
-
-        return (start, last, statusStr)
-    }
-
-    func debugResetTrial() {
-        let now = Date()
-        saveDate(now, forKey: trialStartKey)
-        saveDate(now, forKey: lastUsedKey)
-        deleteLicenseKey()
-    }
-
-    func debugExpireTrial() {
-        let expiredDate = Calendar.current.date(byAdding: .day, value: -(trialDays + 1), to: Date())!
-        saveDate(expiredDate, forKey: trialStartKey)
-        saveDate(Date(), forKey: lastUsedKey)
-        deleteLicenseKey()
-    }
-
-    func debugSetDaysLeft(_ days: Int) {
-        let startDate = Calendar.current.date(byAdding: .day, value: -(trialDays - days), to: Date())!
-        saveDate(startDate, forKey: trialStartKey)
-        saveDate(Date(), forKey: lastUsedKey)
-        deleteLicenseKey()
+    /// Saves a fake license locally WITHOUT LemonSqueezy validation —
+    /// the real activateLicense would reject any non-purchased key.
+    func debugActivateLicense(kind: LicenseKind) {
+        saveLicenseKey("DEBUG-LICENSE-KEY")
+        saveString(kind.rawValue, forKey: licenseKindKey)
     }
     #endif
 }

@@ -263,6 +263,19 @@ struct PopoverView: View {
 
     // MARK: - Translation Card (Language + Tone + Auto-paste)
 
+    /// Whether a target language is out of reach on the current plan
+    /// (free tier only translates to the server-allowed list).
+    private func isLanguageLocked(_ language: TargetLanguage) -> Bool {
+        guard viewModel.usesFreeTier,
+              let allowed = ProxyClient.shared.freeLimits.allowedTargets else { return false }
+        return !allowed.contains(language.rawValue)
+    }
+
+    private var lockedLanguageHint: String {
+        let allowed = (ProxyClient.shared.freeLimits.allowedTargets ?? []).joined(separator: ", ")
+        return "Free plan translates to \(allowed) only — upgrade to unlock"
+    }
+
     private var translationCard: some View {
         VStack(spacing: 0) {
             // Language row
@@ -273,7 +286,8 @@ struct PopoverView: View {
                 Spacer()
                 Picker("", selection: $viewModel.targetLanguage) {
                     ForEach(TargetLanguage.allCases, id: \.self) { language in
-                        Text(language.displayName).tag(language)
+                        Text(language.displayName + (isLanguageLocked(language) ? "  🔒" : ""))
+                            .tag(language)
                     }
                 }
                 .labelsHidden()
@@ -282,6 +296,27 @@ struct PopoverView: View {
             }
             .padding(.horizontal, cardPadding)
             .padding(.vertical, 8)
+
+            // Upsell hint when a locked language is selected on the free plan
+            if isLanguageLocked(viewModel.targetLanguage) {
+                Button {
+                    viewModel.openPurchasePage()
+                } label: {
+                    HStack(spacing: 4) {
+                        Image(systemName: "lock.fill")
+                            .font(.system(size: 8))
+                        Text(lockedLanguageHint)
+                            .font(.system(size: 9))
+                            .multilineTextAlignment(.leading)
+                            .fixedSize(horizontal: false, vertical: true)
+                        Spacer()
+                    }
+                    .foregroundColor(.orange)
+                }
+                .buttonStyle(.plain)
+                .padding(.horizontal, cardPadding)
+                .padding(.bottom, 8)
+            }
 
             Divider().padding(.leading, cardPadding)
 

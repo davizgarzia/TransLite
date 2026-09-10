@@ -7,9 +7,7 @@ import Foundation
 final class ProxyClient {
     static let shared = ProxyClient()
 
-    // TODO: replace with the real Worker URL after `npx wrangler deploy`
-    // (see worker/README.md).
-    private let baseURL = URL(string: "https://translite-api.REPLACE-SUBDOMAIN.workers.dev")!
+    private let baseURL = URL(string: "https://translite-api.translite-api.workers.dev")!
 
     private let session = URLSession.shared
 

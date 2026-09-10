@@ -123,10 +123,10 @@ final class AppViewModel: ObservableObject {
     @Published var licenseKeyInput: String = ""
     @Published var isActivatingLicense: Bool = false
 
-    // Onboarding
+    // Onboarding (free-first: no API key step — BYOK setup lives in
+    // settings and only appears once the user has a license)
     enum OnboardingStep {
         case welcome
-        case apiKey
         case permissions
         case complete
     }
@@ -147,6 +147,14 @@ final class AppViewModel: ObservableObject {
     /// "no key for selected provider" error instead of silently proxying.
     var usesFreeTier: Bool {
         !hasAPIKey && !hasClaudeAPIKey
+    }
+
+    /// Whether the BYOK settings (provider picker, API keys) should be
+    /// offered at all: requires a license or a still-active grandfathered
+    /// trial. Free users never see key configuration.
+    var canConfigureBYOK: Bool {
+        if case .expired = trialStatus { return false }
+        return true
     }
 
     // MARK: - Private Properties
@@ -214,22 +222,11 @@ final class AppViewModel: ObservableObject {
             self.onboardingStep = .welcome
             self.hasAPIKey = false // Don't check keychain yet
             self.hasClaudeAPIKey = false
-        } else if onboardingComplete {
-            // Only access keychain if onboarding is complete.
-            // No key is a valid state now: it means free tier.
-            self.hasAPIKey = keychain.hasAPIKey
-            self.hasClaudeAPIKey = keychain.hasClaudeAPIKey
-            self.onboardingStep = .complete
         } else {
-            // Onboarding in progress - check keychain to determine step
+            // No key is a valid state: it means free tier
             self.hasAPIKey = keychain.hasAPIKey
             self.hasClaudeAPIKey = keychain.hasClaudeAPIKey
-            let hasAnyKey = hasAPIKey || hasClaudeAPIKey
-            if !hasAnyKey {
-                self.onboardingStep = .apiKey
-            } else {
-                self.onboardingStep = .permissions
-            }
+            self.onboardingStep = onboardingComplete ? .complete : .permissions
         }
 
         // Keep free-tier limits in sync with the server (fire and forget)
@@ -257,9 +254,6 @@ final class AppViewModel: ObservableObject {
             hasAPIKey = true
             apiKeyInput = ""
             statusMessage = ""
-
-            // Go to permissions step
-            onboardingStep = .permissions
         } else {
             statusMessage = "Failed to save API key"
         }
@@ -282,11 +276,6 @@ final class AppViewModel: ObservableObject {
             hasClaudeAPIKey = true
             claudeApiKeyInput = ""
             statusMessage = ""
-
-            // Go to permissions step if this is the first key
-            if onboardingStep == .apiKey {
-                onboardingStep = .permissions
-            }
         } else {
             statusMessage = "Failed to save API key"
         }
@@ -296,7 +285,7 @@ final class AppViewModel: ObservableObject {
 
     func continueFromWelcome() {
         UserDefaults.standard.set(true, forKey: "hasSeenWelcome")
-        onboardingStep = .apiKey
+        onboardingStep = .permissions
     }
 
     func enableAutoPasteWithPermissions() {
@@ -315,11 +304,6 @@ final class AppViewModel: ObservableObject {
         completeOnboarding()
     }
 
-    /// Onboarding path for users who don't bring their own API key:
-    /// translations go through the free-tier proxy.
-    func skipAPIKeyForFreeTier() {
-        onboardingStep = .permissions
-    }
 
     private func completeOnboarding() {
         UserDefaults.standard.set(true, forKey: "onboardingComplete")
@@ -331,15 +315,10 @@ final class AppViewModel: ObservableObject {
         hasAPIKey = false
         statusMessage = "OpenAI API key removed"
 
-        if hasClaudeAPIKey {
-            // Switch to Claude if it was the active provider
-            if apiProvider == .openai {
-                apiProvider = .claude
-            }
-        } else {
-            // No keys left - reset onboarding
-            UserDefaults.standard.set(false, forKey: "onboardingComplete")
-            onboardingStep = .apiKey
+        // Switch to Claude if it was the active provider;
+        // with no keys left the app falls back to the free tier
+        if hasClaudeAPIKey, apiProvider == .openai {
+            apiProvider = .claude
         }
     }
 
@@ -374,15 +353,10 @@ final class AppViewModel: ObservableObject {
         hasClaudeAPIKey = false
         statusMessage = "Claude API key removed"
 
-        if hasAPIKey {
-            // Switch to OpenAI if it was the active provider
-            if apiProvider == .claude {
-                apiProvider = .openai
-            }
-        } else {
-            // No keys left - reset onboarding
-            UserDefaults.standard.set(false, forKey: "onboardingComplete")
-            onboardingStep = .apiKey
+        // Switch to OpenAI if it was the active provider;
+        // with no keys left the app falls back to the free tier
+        if hasAPIKey, apiProvider == .claude {
+            apiProvider = .openai
         }
     }
 

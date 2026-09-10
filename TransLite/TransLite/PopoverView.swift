@@ -6,7 +6,6 @@ import Sparkle
 struct PopoverView: View {
     @ObservedObject var viewModel: AppViewModel
     @State private var showingAPIKeyHelp = false
-    @State private var onboardingProvider: APIProvider = .openai
     @State private var addingKeyFor: APIProvider? = nil
     @State private var showingApiKeySteps = false
     @State private var showingApiKeysSection = false
@@ -48,9 +47,6 @@ struct PopoverView: View {
             case .welcome:
                 onboardingWelcomeCard
 
-            case .apiKey:
-                onboardingApiKeyCard
-
             case .permissions:
                 onboardingPermissionsCard
 
@@ -67,7 +63,11 @@ struct PopoverView: View {
                     VStack(spacing: contentSpacing) {
                         translationCard
                         settingsCard
-                        keysCard
+                        // BYOK configuration only makes sense with a license
+                        // (or a grandfathered trial); free users never see it
+                        if viewModel.canConfigureBYOK {
+                            keysCard
+                        }
                     }
                     // Trial expiry only gates BYOK; the free tier keeps working
                     .opacity(trialExpired && !viewModel.usesFreeTier ? 0.5 : 1.0)
@@ -171,7 +171,7 @@ struct PopoverView: View {
                         } else if viewModel.usesFreeTier {
                             Text("Free plan")
                                 .font(.system(size: 11, weight: .semibold))
-                            Text("License unlocks your own API key")
+                            Text("\(ProxyClient.shared.freeLimits.dailyQuota ?? 25)/day to English — license removes limits")
                                 .font(.system(size: 9))
                                 .foregroundColor(.secondary)
                         } else {
@@ -977,210 +977,6 @@ struct PopoverView: View {
                 .foregroundColor(.primary)
             Spacer()
         }
-    }
-
-    // MARK: - Onboarding: API Key
-
-    @State private var showingOnboardingApiKeySteps = false
-
-    private var onboardingApiKeyCard: some View {
-        VStack(spacing: 0) {
-            // Header with provider icon
-            VStack(spacing: 6) {
-                if onboardingProvider == .openai {
-                    Image("OpenAIIcon")
-                        .resizable()
-                        .aspectRatio(contentMode: .fit)
-                        .frame(width: 28, height: 28)
-                } else {
-                    Image("ClaudeIcon")
-                        .resizable()
-                        .aspectRatio(contentMode: .fit)
-                        .frame(width: 28, height: 28)
-                }
-
-                Text("Add your \(onboardingProvider.displayName) Key")
-                    .font(.system(size: 13, weight: .semibold))
-
-                Text("Your API key, your data. We never store or read your content.")
-                    .font(.system(size: 10))
-                    .foregroundColor(.secondary)
-                    .multilineTextAlignment(.center)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 10)
-            .padding(.horizontal, 12)
-
-            Divider()
-
-            // Provider selector
-            HStack {
-                Label("Provider", systemImage: "sparkles")
-                    .font(.system(size: 11))
-                    .foregroundColor(.secondary)
-                Spacer()
-                Picker("", selection: $onboardingProvider) {
-                    ForEach(APIProvider.allCases, id: \.self) { provider in
-                        Text(provider.displayName).tag(provider)
-                    }
-                }
-                .labelsHidden()
-                .pickerStyle(.menu)
-                .frame(width: 100)
-            }
-            .padding(.horizontal, cardPadding + 4)
-            .frame(height: 36)
-
-            Divider()
-
-            // API key input + Save + Open link + pricing
-            VStack(spacing: 8) {
-                if onboardingProvider == .openai {
-                    SecureField("sk-...", text: $viewModel.apiKeyInput)
-                        .textFieldStyle(.plain)
-                        .padding(8)
-                        .background(Color(NSColor.textBackgroundColor))
-                        .cornerRadius(6)
-                        .font(.system(size: 12, design: .monospaced))
-
-                    Button {
-                        viewModel.saveAPIKey()
-                    } label: {
-                        Text("Save API Key")
-                            .font(.system(size: 10, weight: .medium))
-                            .frame(maxWidth: .infinity)
-                            .frame(height: 24)
-                    }
-                    .buttonStyle(.borderedProminent)
-                    .disabled(viewModel.apiKeyInput.isEmpty)
-
-                    Button {
-                        if let url = URL(string: "https://platform.openai.com/api-keys") {
-                            NSWorkspace.shared.open(url)
-                        }
-                    } label: {
-                        HStack(spacing: 4) {
-                            Image(systemName: "arrow.up.right.square")
-                            Text("Open OpenAI")
-                        }
-                        .font(.system(size: 10, weight: .medium))
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 24)
-                    }
-                    .buttonStyle(.bordered)
-
-                    Text("OpenAI charges only for usage. This app uses gpt-4o-mini. With normal use, $5 = 15,000+ translations.")
-                        .font(.system(size: 9))
-                        .foregroundColor(.secondary)
-                        .fixedSize(horizontal: false, vertical: true)
-                } else {
-                    SecureField("sk-ant-...", text: $viewModel.claudeApiKeyInput)
-                        .textFieldStyle(.plain)
-                        .padding(8)
-                        .background(Color(NSColor.textBackgroundColor))
-                        .cornerRadius(6)
-                        .font(.system(size: 12, design: .monospaced))
-
-                    Button {
-                        viewModel.saveClaudeAPIKey()
-                    } label: {
-                        Text("Save API Key")
-                            .font(.system(size: 10, weight: .medium))
-                            .frame(maxWidth: .infinity)
-                            .frame(height: 24)
-                    }
-                    .buttonStyle(.borderedProminent)
-                    .disabled(viewModel.claudeApiKeyInput.isEmpty)
-
-                    Button {
-                        if let url = URL(string: "https://console.anthropic.com/settings/keys") {
-                            NSWorkspace.shared.open(url)
-                        }
-                    } label: {
-                        HStack(spacing: 4) {
-                            Image(systemName: "arrow.up.right.square")
-                            Text("Open Anthropic")
-                        }
-                        .font(.system(size: 10, weight: .medium))
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 24)
-                    }
-                    .buttonStyle(.bordered)
-
-                    Text("Anthropic charges only for usage. This app uses claude-sonnet-4. With normal use, $5 = 5,000+ translations.")
-                        .font(.system(size: 9))
-                        .foregroundColor(.secondary)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-            }
-            .padding(cardPadding + 4)
-
-            Divider()
-
-            // Collapsible "How to get an API key"
-            VStack(spacing: 0) {
-                Button {
-                    withAnimation(.easeInOut(duration: 0.2)) {
-                        showingOnboardingApiKeySteps.toggle()
-                    }
-                } label: {
-                    HStack {
-                        Text("How to get an API key")
-                            .font(.system(size: 10, weight: .medium))
-                            .foregroundColor(.secondary)
-                        Spacer()
-                        Image(systemName: showingOnboardingApiKeySteps ? "chevron.up" : "chevron.down")
-                            .font(.system(size: 9, weight: .medium))
-                            .foregroundColor(.secondary)
-                    }
-                    .padding(.horizontal, cardPadding + 4)
-                    .frame(height: 32)
-                }
-                .buttonStyle(.plain)
-
-                if showingOnboardingApiKeySteps {
-                    VStack(alignment: .leading, spacing: 6) {
-                        if onboardingProvider == .openai {
-                            apiKeyStep(number: 1, text: "Sign in at platform.openai.com")
-                            apiKeyStep(number: 2, text: "Go to API Keys section")
-                            apiKeyStep(number: 3, text: "Create new secret key")
-                            apiKeyStep(number: 4, text: "Copy and paste above")
-                        } else {
-                            apiKeyStep(number: 1, text: "Sign in at console.anthropic.com")
-                            apiKeyStep(number: 2, text: "Go to API Keys section")
-                            apiKeyStep(number: 3, text: "Create new key")
-                            apiKeyStep(number: 4, text: "Copy and paste above")
-                        }
-                    }
-                    .padding(.leading, cardPadding + 4)
-                    .padding(.trailing, cardPadding)
-                    .padding(.bottom, cardPadding)
-                }
-            }
-
-            Divider()
-
-            // Free plan escape hatch - no API key required
-            Button {
-                viewModel.skipAPIKeyForFreeTier()
-            } label: {
-                VStack(spacing: 2) {
-                    Text("Skip — use Free plan")
-                        .font(.system(size: 10, weight: .medium))
-                    Text("\(ProxyClient.shared.freeLimits.dailyQuota ?? 25) translations/day, no API key needed")
-                        .font(.system(size: 9))
-                        .foregroundColor(.secondary)
-                }
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 6)
-            }
-            .buttonStyle(.plain)
-            .padding(.horizontal, cardPadding)
-            .padding(.vertical, 4)
-        }
-        .background(Color(NSColor.controlBackgroundColor).opacity(0.7))
-        .cornerRadius(cardCornerRadius)
     }
 
     // MARK: - Onboarding: Permissions

@@ -23,7 +23,7 @@ export const TIERS: Record<TierName, TierConfig> = {
   free: {
     enabled: true,
     maxChars: 1000,
-    dailyQuota: 25,
+    dailyQuota: 20,
     allowedTargets: ["English"],
     provider: "openai",
     model: "gpt-4o-mini",

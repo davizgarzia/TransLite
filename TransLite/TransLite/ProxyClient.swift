@@ -21,7 +21,7 @@ final class ProxyClient {
         var allowedTargets: [String]?
     }
 
-    private(set) var freeLimits = TierLimits(maxChars: 1000, dailyQuota: 25, allowedTargets: ["English"])
+    private(set) var freeLimits = TierLimits(maxChars: 1000, dailyQuota: 20, allowedTargets: ["English"])
 
     /// Translations left today for this device, from the last response's
     /// X-Quota-Remaining header. Persisted per UTC day (the server's reset

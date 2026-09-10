@@ -50,7 +50,7 @@ All endpoints return JSON. Errors look like
 Limits of every enabled tier, for client-side pre-flight checks:
 
 ```json
-{ "tiers": { "free": { "max_chars": 1000, "daily_quota": 25, "target_languages": ["English"] } } }
+{ "tiers": { "free": { "max_chars": 1000, "daily_quota": 20, "target_languages": ["English"] } } }
 ```
 
 ### `POST /v1/translate`

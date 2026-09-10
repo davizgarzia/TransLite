@@ -176,7 +176,7 @@ struct PopoverView: View {
     }
 
     private var trialSection: some View {
-        let quota = ProxyClient.shared.freeLimits.dailyQuota ?? 25
+        let quota = ProxyClient.shared.freeLimits.dailyQuota ?? 20
         let remaining = viewModel.freeQuotaRemaining ?? quota
 
         return VStack(spacing: 0) {

@@ -1279,16 +1279,18 @@ private struct DebugMenu: View {
 
             Divider()
 
-            // Display-only: the real counter lives server-side and
-            // resyncs on the next translation
-            Section("Free Quota (display)") {
+            // Feeds the client-side counter (display + pre-flight check);
+            // the server counter resyncs on the next real translation
+            Section("Free Quota (client)") {
                 Button("Set 3 Left Today") {
+                    ProxyClient.shared.debugSetQuotaRemaining(3)
                     viewModel.freeQuotaRemaining = 3
                 }
                 Button("Set 0 Left Today") {
+                    ProxyClient.shared.debugSetQuotaRemaining(0)
                     viewModel.freeQuotaRemaining = 0
                 }
-                Button("Reset Quota Display") {
+                Button("Reset Quota") {
                     viewModel.freeQuotaRemaining = nil
                     UserDefaults.standard.removeObject(forKey: "freeQuotaRemaining")
                     UserDefaults.standard.removeObject(forKey: "freeQuotaRemainingDay")

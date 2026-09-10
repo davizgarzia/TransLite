@@ -459,6 +459,19 @@ final class AppViewModel: ObservableObject {
 
             // Proxied tiers: enforce limits before spending a request
             if let limits = proxyLimits(for: backend) {
+                if let quota = limits.dailyQuota,
+                   let remaining = proxy.quotaRemainingToday, remaining <= 0 {
+                    statusMessage = "Daily limit reached (\(quota) per day)"
+                    AnalyticsClient.track("translation_failed", properties: [
+                        "provider": .string(providerLabel),
+                        "reason": .string("quota_exceeded")
+                    ])
+                    await flashHUDError(statusMessage)
+                    hud.hide()
+                    isTranslating = false
+                    return
+                }
+
                 if text.count > limits.maxChars {
                     statusMessage = "Text too long (max \(limits.maxChars) characters)"
                     AnalyticsClient.track("translation_failed", properties: [
@@ -621,17 +634,32 @@ final class AppViewModel: ObservableObject {
                 return
             }
 
-            // Proxied tiers: reject over-limit text before spending a request
-            if let limits = proxyLimits(for: backend), text.count > limits.maxChars {
-                statusMessage = "Text too long (max \(limits.maxChars) characters)"
-                AnalyticsClient.track("improvement_failed", properties: [
-                    "provider": .string(providerLabel),
-                    "reason": .string("text_too_long")
-                ])
-                await flashHUDError(statusMessage)
-                hud.hide()
-                isTranslating = false
-                return
+            // Proxied tiers: enforce limits before spending a request
+            if let limits = proxyLimits(for: backend) {
+                if let quota = limits.dailyQuota,
+                   let remaining = proxy.quotaRemainingToday, remaining <= 0 {
+                    statusMessage = "Daily limit reached (\(quota) per day)"
+                    AnalyticsClient.track("improvement_failed", properties: [
+                        "provider": .string(providerLabel),
+                        "reason": .string("quota_exceeded")
+                    ])
+                    await flashHUDError(statusMessage)
+                    hud.hide()
+                    isTranslating = false
+                    return
+                }
+
+                if text.count > limits.maxChars {
+                    statusMessage = "Text too long (max \(limits.maxChars) characters)"
+                    AnalyticsClient.track("improvement_failed", properties: [
+                        "provider": .string(providerLabel),
+                        "reason": .string("text_too_long")
+                    ])
+                    await flashHUDError(statusMessage)
+                    hud.hide()
+                    isTranslating = false
+                    return
+                }
             }
 
             statusMessage = "Improving..."

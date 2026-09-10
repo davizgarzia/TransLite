@@ -35,6 +35,21 @@ final class ProxyClient {
         }
     }
 
+    /// Remaining quota, but only when it belongs to the current UTC day —
+    /// safe for pre-flight blocking (a stale yesterday value returns nil).
+    var quotaRemainingToday: Int? {
+        guard UserDefaults.standard.string(forKey: "freeQuotaRemainingDay") == Self.utcDay() else {
+            return nil
+        }
+        return quotaRemaining
+    }
+
+    #if DEBUG
+    func debugSetQuotaRemaining(_ value: Int) {
+        quotaRemaining = value
+    }
+    #endif
+
     private static func utcDay() -> String {
         let formatter = DateFormatter()
         formatter.dateFormat = "yyyy-MM-dd"

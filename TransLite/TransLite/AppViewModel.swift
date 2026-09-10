@@ -420,8 +420,8 @@ final class AppViewModel: ObservableObject {
     /// Shows an error in the HUD long enough to be read before the caller
     /// hides it. Free-tier users may never open the popover, so the HUD is
     /// their only feedback channel.
-    private func flashHUD(_ message: String) async {
-        hud.update(message: message)
+    private func flashHUD(_ message: String, kind: HUDKind = .error) async {
+        hud.update(message: message, kind: kind)
         try? await Task.sleep(nanoseconds: 1_600_000_000)
     }
 
@@ -565,7 +565,7 @@ final class AppViewModel: ObservableObject {
                     // Nothing was pasted for the user — tell them the
                     // result is one keystroke away
                     if delivery != "auto_paste" {
-                        await flashHUD("Copied — press ⌘V to paste")
+                        await flashHUD("Copied — press ⌘V to paste", kind: .success)
                     }
 
                     // Free always sees the counter; Pro only near the
@@ -724,7 +724,7 @@ final class AppViewModel: ObservableObject {
                     // Nothing was pasted for the user — tell them the
                     // result is one keystroke away
                     if delivery != "auto_paste" {
-                        await flashHUD("Copied — press ⌘V to paste")
+                        await flashHUD("Copied — press ⌘V to paste", kind: .success)
                     }
 
                     // Free always sees the counter; Pro only near the

@@ -1,11 +1,19 @@
 import AppKit
 import SwiftUI
 
+/// Visual state of the HUD icon
+enum HUDKind: Equatable {
+    case working
+    case success
+    case error
+}
+
 /// Observable state driving the HUD content and its animations
 final class HUDModel: ObservableObject {
     @Published var message: String = ""
     @Published var visible: Bool = false
     @Published var tip: String?
+    @Published var kind: HUDKind = .working
 }
 
 /// Floating HUD window that shows translation status
@@ -55,10 +63,11 @@ final class TranslationHUD {
 
     /// Updates the message while HUD is showing, cross-fading the text and
     /// animating the window to the new content size
-    func update(message: String) {
+    func update(message: String, kind: HUDKind = .working) {
         DispatchQueue.main.async { [weak self] in
             guard let self else { return }
             self.model.message = message
+            self.model.kind = kind
             self.resizeWindowToFit()
         }
     }
@@ -99,6 +108,7 @@ final class TranslationHUD {
 
         model.message = message
         model.visible = false
+        model.kind = .working
         startTips()
 
         // Create the SwiftUI content
@@ -154,17 +164,31 @@ struct HUDContentView: View {
         VStack(spacing: 0) {
             // Status row
             HStack(spacing: 12) {
-                Image("TransLiteIcon")
-                    .resizable()
-                    .renderingMode(.template)
-                    .aspectRatio(contentMode: .fit)
-                    .frame(width: 16, height: 13)
-                    .foregroundColor(.white.opacity(0.7))
-                    .opacity(isPulsing ? 0.3 : 1.0)
-                    .animation(.easeInOut(duration: 0.6).repeatForever(autoreverses: true), value: isPulsing)
-                    .onAppear {
-                        isPulsing = true
+                Group {
+                    switch model.kind {
+                    case .working:
+                        Image("TransLiteIcon")
+                            .resizable()
+                            .renderingMode(.template)
+                            .aspectRatio(contentMode: .fit)
+                            .frame(width: 16, height: 13)
+                            .foregroundColor(.white.opacity(0.7))
+                            .opacity(isPulsing ? 0.3 : 1.0)
+                            .animation(.easeInOut(duration: 0.6).repeatForever(autoreverses: true), value: isPulsing)
+                            .onAppear {
+                                isPulsing = true
+                            }
+                    case .success:
+                        Image(systemName: "checkmark.circle.fill")
+                            .font(.system(size: 14))
+                            .foregroundColor(.green)
+                    case .error:
+                        Image(systemName: "exclamationmark.triangle.fill")
+                            .font(.system(size: 13))
+                            .foregroundColor(.orange)
                     }
+                }
+                .animation(.easeInOut(duration: 0.18), value: model.kind)
 
                 Text(model.message)
                     .font(.system(size: 14, weight: .medium))

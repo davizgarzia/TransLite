@@ -438,7 +438,8 @@ struct PopoverView: View {
             .buttonStyle(.bordered)
             .controlSize(.small)
         }
-        .padding(10)
+        .padding(.horizontal, 8)
+        .padding(.vertical, 6)
         .background(Color.orange.opacity(0.15))
         .cornerRadius(cardCornerRadius)
     }

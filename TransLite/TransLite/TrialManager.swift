@@ -166,6 +166,12 @@ final class TrialManager {
         }
     }
 
+    /// Stable per-Mac identifier, also used by the free-tier proxy for
+    /// daily quota accounting.
+    var deviceId: String {
+        getOrCreateInstanceId()
+    }
+
     /// Gets or creates a unique instance identifier for this Mac
     private func getOrCreateInstanceId() -> String {
         let instanceKey = "instance-id"

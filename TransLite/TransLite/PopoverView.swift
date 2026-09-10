@@ -69,8 +69,9 @@ struct PopoverView: View {
                         settingsCard
                         keysCard
                     }
-                    .opacity(trialExpired ? 0.5 : 1.0)
-                    .disabled(trialExpired)
+                    // Trial expiry only gates BYOK; the free tier keeps working
+                    .opacity(trialExpired && !viewModel.usesFreeTier ? 0.5 : 1.0)
+                    .disabled(trialExpired && !viewModel.usesFreeTier)
                 }
             }
 
@@ -1106,6 +1107,26 @@ struct PopoverView: View {
                     .padding(.bottom, cardPadding)
                 }
             }
+
+            Divider()
+
+            // Free plan escape hatch - no API key required
+            Button {
+                viewModel.skipAPIKeyForFreeTier()
+            } label: {
+                VStack(spacing: 2) {
+                    Text("Skip — use Free plan")
+                        .font(.system(size: 10, weight: .medium))
+                    Text("\(ProxyClient.shared.freeLimits.dailyQuota ?? 50) translations/day, no API key needed")
+                        .font(.system(size: 9))
+                        .foregroundColor(.secondary)
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 6)
+            }
+            .buttonStyle(.plain)
+            .padding(.horizontal, cardPadding)
+            .padding(.vertical, 4)
         }
         .background(Color(NSColor.controlBackgroundColor).opacity(0.7))
         .cornerRadius(cardCornerRadius)

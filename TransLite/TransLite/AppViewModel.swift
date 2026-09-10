@@ -132,6 +132,23 @@ final class AppViewModel: ObservableObject {
     }
     @Published var onboardingStep: OnboardingStep = .welcome
 
+    // MARK: - Backend Resolution
+
+    /// How a translation/improvement request is fulfilled: with the user's
+    /// own key (BYOK, direct to the provider) or through our proxy Worker
+    /// on the free tier.
+    enum TranslationBackend {
+        case byok(provider: APIProvider, apiKey: String)
+        case freeTier
+    }
+
+    /// Free tier applies when the user has no API key configured at all.
+    /// If a key exists for another provider, we keep the explicit
+    /// "no key for selected provider" error instead of silently proxying.
+    var usesFreeTier: Bool {
+        !hasAPIKey && !hasClaudeAPIKey
+    }
+
     // MARK: - Private Properties
 
     private let trialManager = TrialManager.shared
@@ -139,6 +156,7 @@ final class AppViewModel: ObservableObject {
     private let clipboard = ClipboardManager.shared
     private let openAI = OpenAIClient.shared
     private let claude = ClaudeClient.shared
+    private let proxy = ProxyClient.shared
     private let accessibility = AccessibilityHelper.shared
     private let hud = TranslationHUD.shared
     private var permissionPollingTimer: Timer?
@@ -197,11 +215,11 @@ final class AppViewModel: ObservableObject {
             self.hasAPIKey = false // Don't check keychain yet
             self.hasClaudeAPIKey = false
         } else if onboardingComplete {
-            // Only access keychain if onboarding is complete
+            // Only access keychain if onboarding is complete.
+            // No key is a valid state now: it means free tier.
             self.hasAPIKey = keychain.hasAPIKey
             self.hasClaudeAPIKey = keychain.hasClaudeAPIKey
-            let hasAnyKey = hasAPIKey || hasClaudeAPIKey
-            self.onboardingStep = hasAnyKey ? .complete : .apiKey
+            self.onboardingStep = .complete
         } else {
             // Onboarding in progress - check keychain to determine step
             self.hasAPIKey = keychain.hasAPIKey
@@ -212,6 +230,11 @@ final class AppViewModel: ObservableObject {
             } else {
                 self.onboardingStep = .permissions
             }
+        }
+
+        // Keep free-tier limits in sync with the server (fire and forget)
+        Task {
+            await ProxyClient.shared.refreshLimits()
         }
     }
 
@@ -292,6 +315,12 @@ final class AppViewModel: ObservableObject {
         completeOnboarding()
     }
 
+    /// Onboarding path for users who don't bring their own API key:
+    /// translations go through the free-tier proxy.
+    func skipAPIKeyForFreeTier() {
+        onboardingStep = .permissions
+    }
+
     private func completeOnboarding() {
         UserDefaults.standard.set(true, forKey: "onboardingComplete")
         onboardingStep = .complete
@@ -359,36 +388,60 @@ final class AppViewModel: ObservableObject {
 
     // MARK: - Translation
 
+    /// Resolves how the next request should be fulfilled, setting
+    /// statusMessage and returning nil when the action can't proceed.
+    private func resolveBackend() -> TranslationBackend? {
+        refreshTrialStatus()
+
+        if usesFreeTier {
+            return .freeTier
+        }
+
+        // BYOK requires an active trial or license
+        guard trialManager.canUseApp else {
+            statusMessage = "Trial expired - please activate license"
+            return nil
+        }
+
+        switch apiProvider {
+        case .openai:
+            guard hasAPIKey, let key = keychain.getAPIKey() else {
+                statusMessage = "No OpenAI API key configured"
+                return nil
+            }
+            return .byok(provider: .openai, apiKey: key)
+        case .claude:
+            guard hasClaudeAPIKey, let key = keychain.getClaudeAPIKey() else {
+                statusMessage = "No Claude API key configured"
+                return nil
+            }
+            return .byok(provider: .claude, apiKey: key)
+        }
+    }
+
+    private static func analyticsProvider(for backend: TranslationBackend) -> String {
+        switch backend {
+        case .byok(let provider, _): return provider.rawValue
+        case .freeTier: return "free_tier"
+        }
+    }
+
+    /// Shows an error in the HUD long enough to be read before the caller
+    /// hides it. Free-tier users may never open the popover, so the HUD is
+    /// their only feedback channel.
+    private func flashHUDError(_ message: String) async {
+        hud.update(message: message)
+        try? await Task.sleep(nanoseconds: 1_600_000_000)
+    }
+
     func translateClipboard() {
         guard !isTranslating else {
             statusMessage = "Translation in progress..."
             return
         }
 
-        // Check trial/license status and sync UI
-        refreshTrialStatus()
-        guard trialManager.canUseApp else {
-            statusMessage = "Trial expired - please activate license"
-            return
-        }
-
-        // Get API key based on selected provider
-        let selectedProvider = apiProvider
-        let apiKey: String
-        switch selectedProvider {
-        case .openai:
-            guard hasAPIKey, let key = keychain.getAPIKey() else {
-                statusMessage = "No OpenAI API key configured"
-                return
-            }
-            apiKey = key
-        case .claude:
-            guard hasClaudeAPIKey, let key = keychain.getClaudeAPIKey() else {
-                statusMessage = "No Claude API key configured"
-                return
-            }
-            apiKey = key
-        }
+        guard let backend = resolveBackend() else { return }
+        let providerLabel = Self.analyticsProvider(for: backend)
 
         isTranslating = true
         hud.show(message: "Copying...")
@@ -405,9 +458,22 @@ final class AppViewModel: ObservableObject {
             guard let text = clipboard.readText() else {
                 statusMessage = "No text selected"
                 AnalyticsClient.track("translation_failed", properties: [
-                    "provider": .string(selectedProvider.rawValue),
+                    "provider": .string(providerLabel),
                     "reason": .string("no_selected_text")
                 ])
+                hud.hide()
+                isTranslating = false
+                return
+            }
+
+            // Free tier: reject over-limit text before spending a request
+            if case .freeTier = backend, text.count > proxy.freeLimits.maxChars {
+                statusMessage = "Text too long (max \(proxy.freeLimits.maxChars) characters)"
+                AnalyticsClient.track("translation_failed", properties: [
+                    "provider": .string(providerLabel),
+                    "reason": .string("text_too_long")
+                ])
+                await flashHUDError(statusMessage)
                 hud.hide()
                 isTranslating = false
                 return
@@ -417,7 +483,7 @@ final class AppViewModel: ObservableObject {
             hud.update(message: "Translating...")
             let startedAt = Date()
             let baseProperties: [String: AnalyticsValue] = [
-                "provider": .string(selectedProvider.rawValue),
+                "provider": .string(providerLabel),
                 "target_language": .string(targetLanguage.rawValue),
                 "tone": .string(translationTone.rawValue),
                 "auto_paste": .boolean(autoPasteEnabled)
@@ -426,20 +492,26 @@ final class AppViewModel: ObservableObject {
 
             do {
                 let translated: String
-                switch selectedProvider {
-                case .openai:
+                switch backend {
+                case .byok(.openai, let apiKey):
                     translated = try await openAI.translate(
                         text: text,
                         apiKey: apiKey,
                         targetLanguage: targetLanguage.rawValue,
                         tone: translationTone.promptInstruction
                     )
-                case .claude:
+                case .byok(.claude, let apiKey):
                     translated = try await claude.translate(
                         text: text,
                         apiKey: apiKey,
                         targetLanguage: targetLanguage.rawValue,
                         tone: translationTone.promptInstruction
+                    )
+                case .freeTier:
+                    translated = try await proxy.translate(
+                        text: text,
+                        targetLanguage: targetLanguage.rawValue,
+                        tone: translationTone
                     )
                 }
 
@@ -470,6 +542,10 @@ final class AppViewModel: ObservableObject {
                         }
                     }
 
+                    if case .freeTier = backend, let remaining = proxy.quotaRemaining {
+                        statusMessage += " · \(remaining) left today"
+                    }
+
                     var completedProperties = baseProperties
                     completedProperties["duration_ms"] = .integer(Self.durationMilliseconds(since: startedAt))
                     completedProperties["delivery"] = .string(delivery)
@@ -484,6 +560,9 @@ final class AppViewModel: ObservableObject {
 
             } catch {
                 statusMessage = error.localizedDescription
+                if error is ProxyError {
+                    await flashHUDError(statusMessage)
+                }
                 var failedProperties = baseProperties
                 failedProperties["duration_ms"] = .integer(Self.durationMilliseconds(since: startedAt))
                 failedProperties["reason"] = .string(Self.analyticsErrorCategory(error))
@@ -501,30 +580,8 @@ final class AppViewModel: ObservableObject {
             return
         }
 
-        // Check trial/license status and sync UI
-        refreshTrialStatus()
-        guard trialManager.canUseApp else {
-            statusMessage = "Trial expired - please activate license"
-            return
-        }
-
-        // Get API key based on selected provider
-        let selectedProvider = apiProvider
-        let apiKey: String
-        switch selectedProvider {
-        case .openai:
-            guard hasAPIKey, let key = keychain.getAPIKey() else {
-                statusMessage = "No OpenAI API key configured"
-                return
-            }
-            apiKey = key
-        case .claude:
-            guard hasClaudeAPIKey, let key = keychain.getClaudeAPIKey() else {
-                statusMessage = "No Claude API key configured"
-                return
-            }
-            apiKey = key
-        }
+        guard let backend = resolveBackend() else { return }
+        let providerLabel = Self.analyticsProvider(for: backend)
 
         isTranslating = true
         hud.show(message: "Copying...")
@@ -541,9 +598,22 @@ final class AppViewModel: ObservableObject {
             guard let text = clipboard.readText() else {
                 statusMessage = "No text selected"
                 AnalyticsClient.track("improvement_failed", properties: [
-                    "provider": .string(selectedProvider.rawValue),
+                    "provider": .string(providerLabel),
                     "reason": .string("no_selected_text")
                 ])
+                hud.hide()
+                isTranslating = false
+                return
+            }
+
+            // Free tier: reject over-limit text before spending a request
+            if case .freeTier = backend, text.count > proxy.freeLimits.maxChars {
+                statusMessage = "Text too long (max \(proxy.freeLimits.maxChars) characters)"
+                AnalyticsClient.track("improvement_failed", properties: [
+                    "provider": .string(providerLabel),
+                    "reason": .string("text_too_long")
+                ])
+                await flashHUDError(statusMessage)
                 hud.hide()
                 isTranslating = false
                 return
@@ -553,24 +623,26 @@ final class AppViewModel: ObservableObject {
             hud.update(message: "Improving...")
             let startedAt = Date()
             let baseProperties: [String: AnalyticsValue] = [
-                "provider": .string(selectedProvider.rawValue),
+                "provider": .string(providerLabel),
                 "auto_paste": .boolean(autoPasteEnabled)
             ]
             AnalyticsClient.track("improvement_started", properties: baseProperties)
 
             do {
                 let improved: String
-                switch selectedProvider {
-                case .openai:
+                switch backend {
+                case .byok(.openai, let apiKey):
                     improved = try await openAI.improve(
                         text: text,
                         apiKey: apiKey
                     )
-                case .claude:
+                case .byok(.claude, let apiKey):
                     improved = try await claude.improve(
                         text: text,
                         apiKey: apiKey
                     )
+                case .freeTier:
+                    improved = try await proxy.improve(text: text)
                 }
 
                 // Write to clipboard
@@ -600,6 +672,10 @@ final class AppViewModel: ObservableObject {
                         }
                     }
 
+                    if case .freeTier = backend, let remaining = proxy.quotaRemaining {
+                        statusMessage += " · \(remaining) left today"
+                    }
+
                     var completedProperties = baseProperties
                     completedProperties["duration_ms"] = .integer(Self.durationMilliseconds(since: startedAt))
                     completedProperties["delivery"] = .string(delivery)
@@ -614,6 +690,9 @@ final class AppViewModel: ObservableObject {
 
             } catch {
                 statusMessage = error.localizedDescription
+                if error is ProxyError {
+                    await flashHUDError(statusMessage)
+                }
                 var failedProperties = baseProperties
                 failedProperties["duration_ms"] = .integer(Self.durationMilliseconds(since: startedAt))
                 failedProperties["reason"] = .string(Self.analyticsErrorCategory(error))
@@ -655,6 +734,17 @@ final class AppViewModel: ObservableObject {
             case .serverError: return "server_error"
             case .apiError: return "provider_error"
             case .unknownError: return "http_error"
+            }
+        }
+
+        if let error = error as? ProxyError {
+            switch error {
+            case .invalidResponse: return "invalid_response"
+            case .textTooLong: return "text_too_long"
+            case .quotaExceeded: return "quota_exceeded"
+            case .busy: return "rate_limited"
+            case .apiError: return "provider_error"
+            case .serverError: return "server_error"
             }
         }
 

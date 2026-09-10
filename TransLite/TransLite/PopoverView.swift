@@ -753,7 +753,7 @@ struct PopoverView: View {
                     }
                     .buttonStyle(.bordered)
 
-                    Text("Anthropic charges only for usage. This app uses claude-sonnet-4. With normal use, $5 = 5,000+ translations.")
+                    Text("Anthropic charges only for usage. This app uses claude-haiku-4-5. With normal use, $5 = 10,000+ translations.")
                         .font(.system(size: 9))
                         .foregroundColor(.secondary)
                         .fixedSize(horizontal: false, vertical: true)

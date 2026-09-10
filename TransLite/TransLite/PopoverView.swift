@@ -413,7 +413,7 @@ struct PopoverView: View {
             // Inset warning banner while auto-paste lacks the permission
             if viewModel.autoPasteEnabled && !viewModel.hasAccessibilityPermission {
                 accessibilityBanner
-                    .padding([.horizontal, .bottom], cardPadding)
+                    .padding([.horizontal, .bottom], 4)
             }
         }
         .background(Color(NSColor.controlBackgroundColor).opacity(0.7))

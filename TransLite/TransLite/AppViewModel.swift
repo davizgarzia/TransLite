@@ -435,7 +435,7 @@ final class AppViewModel: ObservableObject {
         let providerLabel = Self.analyticsProvider(for: backend)
 
         isTranslating = true
-        hud.show(message: "Copying...")
+        hud.show(message: "Translating...")
 
         // Auto-copy selected text if we have accessibility permission
         if accessibility.hasAccessibilityPermission {
@@ -499,7 +499,6 @@ final class AppViewModel: ObservableObject {
             }
 
             statusMessage = "Translating..."
-            hud.update(message: "Translating...")
             let startedAt = Date()
             let baseProperties: [String: AnalyticsValue] = [
                 "provider": .string(providerLabel),
@@ -620,7 +619,7 @@ final class AppViewModel: ObservableObject {
         let providerLabel = Self.analyticsProvider(for: backend)
 
         isTranslating = true
-        hud.show(message: "Copying...")
+        hud.show(message: "Improving...")
 
         // Auto-copy selected text if we have accessibility permission
         if accessibility.hasAccessibilityPermission {
@@ -671,7 +670,6 @@ final class AppViewModel: ObservableObject {
             }
 
             statusMessage = "Improving..."
-            hud.update(message: "Improving...")
             let startedAt = Date()
             let baseProperties: [String: AnalyticsValue] = [
                 "provider": .string(providerLabel),

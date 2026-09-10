@@ -862,6 +862,25 @@ final class AppViewModel: ObservableObject {
         }
     }
 
+    /// Unlinks the license from this Mac (freeing the LemonSqueezy
+    /// activation seat). Pro billing is unaffected — that's managed in the
+    /// customer portal.
+    func deactivateLicense() {
+        Task {
+            await licenseManager.deactivateLicense()
+            refreshLicenseStatus()
+            statusMessage = "License removed from this Mac"
+        }
+    }
+
+    /// Opens the LemonSqueezy customer portal, where subscribers can
+    /// cancel or update their Pro subscription.
+    func openManageSubscription() {
+        if let url = URL(string: "https://translite.lemonsqueezy.com/billing") {
+            NSWorkspace.shared.open(url)
+        }
+    }
+
     /// Opens the BYOK lifetime license checkout.
     func openPurchasePage(source: String = "license_row") {
         AnalyticsClient.track("purchase_click", properties: [

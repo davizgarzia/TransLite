@@ -1163,7 +1163,7 @@ struct PopoverView: View {
                 .padding(.trailing, 8)
             #endif
 
-            MoreOptionsMenu()
+            MoreOptionsMenu(viewModel: viewModel)
         }
         .frame(maxWidth: .infinity)
         .padding(.top, 8)
@@ -1335,9 +1335,10 @@ private struct DebugMenu: View {
 #endif
 
 private struct MoreOptionsMenu: View {
+    @ObservedObject var viewModel: AppViewModel
     @State private var isHovered = false
     @AppStorage("launchAtLogin") private var launchAtLogin = false
-    
+
     var body: some View {
         Menu {
             Button {
@@ -1370,6 +1371,20 @@ private struct MoreOptionsMenu: View {
 
             Button("Check for Updates...") {
                 AppDelegate.shared?.updaterController?.checkForUpdates(nil)
+            }
+
+            if viewModel.licenseKind != nil {
+                Divider()
+
+                if viewModel.licenseKind == .pro {
+                    Button("Manage Subscription...") {
+                        viewModel.openManageSubscription()
+                    }
+                }
+
+                Button("Remove License from this Mac") {
+                    viewModel.deactivateLicense()
+                }
             }
 
             Divider()

@@ -27,6 +27,7 @@ final class LicenseManager {
     private let service = "com.translite.trial"
     private let licenseKey = "license-key"
     private let licenseKindKey = "license-kind"
+    private let licenseInstanceKey = "license-instance-id"
 
     private init() {}
 
@@ -58,19 +59,44 @@ final class LicenseManager {
         guard !trimmedKey.isEmpty else { return false }
 
         // Validate against LemonSqueezy API
-        guard let productID = await validateWithLemonSqueezy(trimmedKey) else {
+        guard let result = await validateWithLemonSqueezy(trimmedKey) else {
             return false
         }
 
         saveLicenseKey(trimmedKey)
-        let kind: LicenseKind = Self.proProductIDs.contains(productID) ? .pro : .byok
+        let kind: LicenseKind = Self.proProductIDs.contains(result.productID) ? .pro : .byok
         saveString(kind.rawValue, forKey: licenseKindKey)
+        if let instanceID = result.instanceID {
+            saveString(instanceID, forKey: licenseInstanceKey)
+        }
         return true
     }
 
+    /// Unlinks the license from this Mac: frees the activation seat in
+    /// LemonSqueezy (so the key can be activated elsewhere) and removes the
+    /// local copy. For Pro this does NOT cancel the subscription — billing
+    /// is managed in the LemonSqueezy customer portal.
+    func deactivateLicense() async {
+        if let key = getLicenseKey(),
+           let instanceID = getString(forKey: licenseInstanceKey) {
+            var request = URLRequest(url: URL(string: "https://api.lemonsqueezy.com/v1/licenses/deactivate")!)
+            request.httpMethod = "POST"
+            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+            request.setValue("application/json", forHTTPHeaderField: "Accept")
+            request.httpBody = try? JSONSerialization.data(withJSONObject: [
+                "license_key": key,
+                "instance_id": instanceID
+            ])
+            // Best effort: the local removal happens regardless
+            _ = try? await URLSession.shared.data(for: request)
+        }
+        removeLicense()
+    }
+
     /// Validates a license key with LemonSqueezy's API
-    /// - Returns: the product id of the license when valid, nil otherwise
-    private func validateWithLemonSqueezy(_ licenseKey: String) async -> Int? {
+    /// - Returns: the product id and activation instance id when valid,
+    ///   nil otherwise
+    private func validateWithLemonSqueezy(_ licenseKey: String) async -> (productID: Int, instanceID: String?)? {
         let url = URL(string: "https://api.lemonsqueezy.com/v1/licenses/activate")!
 
         var request = URLRequest(url: url)
@@ -102,19 +128,23 @@ final class LicenseManager {
                     let meta = json["meta"] as? [String: Any]
                     // product_id distinguishes Pro subscription from BYOK
                     let productID = meta?["product_id"] as? Int ?? -1
+                    // The activation instance is needed to free the seat
+                    // on deactivation
+                    let instance = json["instance"] as? [String: Any]
+                    let instanceID = instance?["id"] as? String
 
                     // Check if license is valid (activated or already activated)
                     if let activated = json["activated"] as? Bool, activated {
-                        return productID
+                        return (productID, instanceID)
                     }
                     // Check for "already activated" error (still valid)
                     if let error = json["error"] as? String,
                        error.contains("already") {
-                        return productID
+                        return (productID, instanceID)
                     }
                     // Check meta for valid status
                     if let valid = meta?["valid"] as? Bool, valid {
-                        return productID
+                        return (productID, instanceID)
                     }
                 }
             }
@@ -129,6 +159,7 @@ final class LicenseManager {
     func removeLicense() {
         deleteLicenseKey()
         deleteString(forKey: licenseKindKey)
+        deleteString(forKey: licenseInstanceKey)
     }
 
     // MARK: - Device Identity

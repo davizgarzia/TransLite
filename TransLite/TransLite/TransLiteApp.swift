@@ -26,7 +26,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         AppDelegate.shared = self
-        AnalyticsClient.track("app_opened")
 
         // Initialize Sparkle updater
         updaterController = SPUStandardUpdaterController(startingUpdater: true, updaterDelegate: nil, userDriverDelegate: nil)
@@ -34,15 +33,21 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         // Initialize the view model
         viewModel = AppViewModel()
 
+        AnalyticsClient.track("app_opened", properties: [
+            "onboarding_complete": .boolean(viewModel?.onboardingStep == .complete),
+            "accessibility_granted": .boolean(viewModel?.hasAccessibilityPermission ?? false)
+        ])
+
         // Initialize the status bar controller
         if let viewModel = viewModel {
             statusBarController = StatusBarController(viewModel: viewModel)
             
             // Show popover on first launch (when onboarding is not complete)
             if viewModel.onboardingStep != .complete {
-                // Delay slightly to ensure UI is ready
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
-                    self?.statusBarController?.showPopover()
+                // Delay so the status item is laid out and launch noise
+                // (Gatekeeper, DMG windows) has settled
+                DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) { [weak self] in
+                    self?.statusBarController?.showPopover(activating: true)
                 }
             }
         }

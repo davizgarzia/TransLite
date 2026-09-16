@@ -29,9 +29,11 @@ struct PopoverView: View {
             switch viewModel.onboardingStep {
             case .welcome:
                 onboardingWelcomeCard
+                    .onAppear { viewModel.trackOnboardingStepShown() }
 
             case .permissions:
                 onboardingPermissionsSection
+                    .onAppear { viewModel.trackOnboardingStepShown() }
 
             case .complete:
                 if let provider = addingKeyFor {

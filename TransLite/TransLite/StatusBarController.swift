@@ -43,12 +43,24 @@ final class StatusBarController {
             item.target = self
         }
 
-        // Monitor for clicks outside popover to close it
+        // Monitor for clicks outside popover to close it. Skipped while the
+        // popover is pinned (.applicationDefined) during onboarding, so the
+        // welcome card survives the post-install clicking around (closing the
+        // DMG, Gatekeeper dialogs, ...)
         eventMonitor = NSEvent.addGlobalMonitorForEvents(matching: [.leftMouseDown, .rightMouseDown]) { [weak self] _ in
-            if let popover = self?.popover, popover.isShown {
+            if let popover = self?.popover, popover.isShown, popover.behavior == .transient {
                 popover.performClose(nil)
             }
         }
+
+        // Pin the popover open until onboarding is done, then restore the
+        // normal click-outside-to-dismiss behavior
+        viewModel.$onboardingStep
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] step in
+                self?.popover.behavior = step == .complete ? .transient : .applicationDefined
+            }
+            .store(in: &cancellables)
 
         // Observe translation state for pulse animation
         viewModel.$isTranslating
@@ -91,8 +103,13 @@ final class StatusBarController {
         }
     }
     
-    /// Shows the popover (can be called externally)
-    func showPopover() {
+    /// Shows the popover (can be called externally). Pass `activating: true`
+    /// to bring the app to the front first — used on first launch so the
+    /// welcome popover doesn't appear unfocused behind Finder.
+    func showPopover(activating: Bool = false) {
+        if activating {
+            NSApp.activate(ignoringOtherApps: true)
+        }
         if let button = statusItem.button {
             popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
 

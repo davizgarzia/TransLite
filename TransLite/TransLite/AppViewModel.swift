@@ -289,8 +289,24 @@ final class AppViewModel: ObservableObject {
 
     // MARK: - Onboarding
 
+    /// Steps already reported this session, so reopening the popover on the
+    /// same step doesn't inflate the funnel
+    private var trackedOnboardingSteps = Set<String>()
+
+    func trackOnboardingStepShown() {
+        let event: String
+        switch onboardingStep {
+        case .welcome: event = "onboarding_welcome_shown"
+        case .permissions: event = "onboarding_permissions_shown"
+        case .complete: return
+        }
+        guard trackedOnboardingSteps.insert(event).inserted else { return }
+        AnalyticsClient.track(event)
+    }
+
     func continueFromWelcome() {
         UserDefaults.standard.set(true, forKey: "hasSeenWelcome")
+        AnalyticsClient.track("onboarding_welcome_continued")
         onboardingStep = .permissions
     }
 
@@ -314,6 +330,9 @@ final class AppViewModel: ObservableObject {
     private func completeOnboarding() {
         UserDefaults.standard.set(true, forKey: "onboardingComplete")
         onboardingStep = .complete
+        AnalyticsClient.track("onboarding_completed", properties: [
+            "auto_paste_enabled": .boolean(autoPasteEnabled)
+        ])
     }
 
     func deleteAPIKey() {
@@ -821,6 +840,9 @@ final class AppViewModel: ObservableObject {
 
     func refreshAccessibilityStatus() {
         let newStatus = accessibility.hasAccessibilityPermission
+        if newStatus && !hasAccessibilityPermission {
+            AnalyticsClient.track("accessibility_permission_granted")
+        }
         hasAccessibilityPermission = newStatus
 
         // If we now have permission, stop polling

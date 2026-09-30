@@ -170,17 +170,19 @@ if [ "$ICON_WIDTH" != "1024" ]; then
     echo "Error: $ICON_SOURCE is ${ICON_WIDTH}px wide, Setapp requires 1024x1024" >&2
     exit 1
 fi
-# Setapp's uploader only accepts this exact filename, next to the .app
+# Setapp's uploader only accepts this exact filename, next to the .app.
+# Strip extended attributes or ditto embeds them as ._AppIcon.png metadata.
 cp "$ICON_SOURCE" "$STAGING_DIR/AppIcon.png"
+xattr -c "$STAGING_DIR/AppIcon.png"
 
 rm -f "$ZIP_PATH"
-ditto -c -k "$STAGING_DIR" "$ZIP_PATH"
+ditto --norsrc --noextattr -c -k "$STAGING_DIR" "$ZIP_PATH"
 
 echo "Verifying the archive..."
 VERIFY_DIR="$WORK_DIR/verify"
 ditto -x -k "$ZIP_PATH" "$VERIFY_DIR"
-if find "$VERIFY_DIR" -name "__MACOSX" | grep -q .; then
-    echo "Error: the archive contains __MACOSX metadata" >&2
+if find "$VERIFY_DIR" \( -name "__MACOSX" -o -name "._*" \) | grep -q .; then
+    echo "Error: the archive contains Finder metadata (__MACOSX or ._ files)" >&2
     exit 1
 fi
 if [ ! -d "$VERIFY_DIR/TransLite.app" ] || [ ! -f "$VERIFY_DIR/AppIcon.png" ]; then

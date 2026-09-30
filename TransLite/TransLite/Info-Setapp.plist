@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <!-- Setapp build. Maintained by hand: never add an xcodegen `info:`
+         block for this target, it would overwrite this file on generate. -->
+    <key>CFBundleDevelopmentRegion</key>
+    <string>en</string>
+    <key>CFBundleExecutable</key>
+    <string>$(EXECUTABLE_NAME)</string>
+    <key>CFBundleIdentifier</key>
+    <string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
+    <key>CFBundleInfoDictionaryVersion</key>
+    <string>6.0</string>
+    <key>CFBundleName</key>
+    <string>TransLite</string>
+    <key>CFBundlePackageType</key>
+    <string>APPL</string>
+    <key>CFBundleShortVersionString</key>
+    <string>$(MARKETING_VERSION)</string>
+    <key>CFBundleVersion</key>
+    <string>$(CURRENT_PROJECT_VERSION)</string>
+    <key>LSMinimumSystemVersion</key>
+    <string>13.0</string>
+    <key>LSUIElement</key>
+    <true/>
+    <key>NSHumanReadableCopyright</key>
+    <string>Copyright 2024. All rights reserved.</string>
+
+    <!-- Setapp: allow the Setapp agent to update the app (macOS 13+) -->
+    <key>NSUpdateSecurityPolicy</key>
+    <dict>
+        <key>AllowProcesses</key>
+        <dict>
+            <key>MEHY5QF425</key>
+            <array>
+                <string>com.setapp.DesktopClient.SetappAgent</string>
+            </array>
+        </dict>
+    </dict>
+
+    <!-- Setapp: declared architectures (universal binary) -->
+    <key>MPSupportedArchitectures</key>
+    <array>
+        <string>arm64</string>
+        <string>x86_64</string>
+    </array>
+
+    <!-- Setapp AI Gateway OAuth client, injected from Setapp.xcconfig -->
+    <key>SetappAIOAuthClientID</key>
+    <string>$(SETAPP_AI_OAUTH_CLIENT_ID)</string>
+    <key>SetappAIOAuthSecret</key>
+    <string>$(SETAPP_AI_OAUTH_SECRET)</string>
+</dict>
+</plist>

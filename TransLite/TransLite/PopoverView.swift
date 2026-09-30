@@ -1,6 +1,8 @@
 import SwiftUI
 import ServiceManagement
+#if !SETAPP
 import Sparkle
+#endif
 
 /// Main SwiftUI view for the menubar popover
 struct PopoverView: View {
@@ -41,11 +43,14 @@ struct PopoverView: View {
                 } else if showingShortcutConfig {
                     shortcutConfigCard
                 } else {
+                    #if !SETAPP
                     // Paid tiers wear the header badge instead of a plan
-                    // card; only free/blocked states show it
+                    // card; only free/blocked states show it. The Setapp
+                    // build has no plans, quotas or license input at all.
                     if viewModel.licenseKind == nil {
                         planSection
                     }
+                    #endif
 
                     VStack(spacing: contentSpacing) {
                         translationCard
@@ -105,8 +110,8 @@ struct PopoverView: View {
                 .font(.system(size: 13, weight: .semibold))
 
             // Each paid tier wears its own badge
-            if let kind = viewModel.licenseKind {
-                Text(kind == .pro ? "PRO" : "BYOK")
+            if let badge = headerBadge {
+                Text(badge)
                     .font(.system(size: 8, weight: .bold))
                     .foregroundColor(.accentColor)
                     .padding(.horizontal, 5)
@@ -145,6 +150,15 @@ struct PopoverView: View {
             }
             .buttonStyle(.plain)
         }
+    }
+
+    /// Badge label next to the app name. Setapp users are always Pro.
+    private var headerBadge: String? {
+        #if SETAPP
+        return "PRO"
+        #else
+        return viewModel.licenseKind.map { $0 == .pro ? "PRO" : "BYOK" }
+        #endif
     }
 
     // MARK: - Plan Section
@@ -1299,6 +1313,23 @@ private struct DebugMenu: View {
                 }
             }
 
+            #if SETAPP
+            Divider()
+
+            Section("Setapp") {
+                Button("Check AI Credits") {
+                    Task { @MainActor in
+                        do {
+                            let (current, max) = try await SetappAIClient.shared.creditBalances()
+                            viewModel.statusMessage = "Setapp AI credits: \(current) / \(max)"
+                        } catch {
+                            viewModel.statusMessage = "Credits check failed: \(error.localizedDescription)"
+                        }
+                    }
+                }
+            }
+            #endif
+
             Divider()
 
             Section("Onboarding") {
@@ -1373,9 +1404,14 @@ private struct MoreOptionsMenu: View {
 
             Divider()
 
+            #if SETAPP
+            // Setapp handles updates and billing; just say where Pro comes from
+            Text("TransLite Pro · Provided by Setapp")
+            #else
             Button("Check for Updates...") {
                 AppDelegate.shared?.updaterController?.checkForUpdates(nil)
             }
+            #endif
 
             if viewModel.licenseKind != nil {
                 Divider()

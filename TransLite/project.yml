@@ -10,6 +10,9 @@ packages:
   Sparkle:
     url: https://github.com/sparkle-project/Sparkle
     from: "2.5.0"
+  Setapp:
+    url: https://github.com/MacPaw/Setapp-framework.git
+    from: "5.5.1"
 
 settings:
   base:
@@ -17,11 +20,12 @@ settings:
     CURRENT_PROJECT_VERSION: "19"
     SWIFT_VERSION: "5.9"
     CODE_SIGN_STYLE: Manual
-    CODE_SIGN_IDENTITY: "0FCEEAA4861A3809015D60D8BD083B396BD79016"
+    CODE_SIGN_IDENTITY: "0CE093A02A16E959C0A4F8FB205831FE7F8C8A03"
     DEVELOPMENT_TEAM: 2DBHSD6G6F
     ENABLE_HARDENED_RUNTIME: YES
 
 targets:
+  # Direct distribution: translite.app DMG, LemonSqueezy licensing, Sparkle.
   TransLite:
     type: application
     platform: macOS
@@ -29,8 +33,13 @@ targets:
       - path: TransLite
         excludes:
           - "**/*.entitlements"
+          - "Info.plist"
+          - "Info-Setapp.plist"
+          - "setappPublicKey.pem"
     dependencies:
       - package: Sparkle
+    scheme:
+      testTargets: []
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.translite.app
@@ -39,6 +48,43 @@ targets:
         PRODUCT_NAME: TransLite
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         COMBINE_HIDPI_IMAGES: YES
+        LD_RUNPATH_SEARCH_PATHS:
+          - $(inherited)
+          - "@executable_path/../Frameworks"
+
+  # Setapp distribution: same sources compiled with the SETAPP flag.
+  # Licensing/updates are Setapp's, AI goes through the Setapp AI Gateway.
+  # The -setapp bundle id suffix is a Setapp requirement and must match the
+  # id registered in developer.setapp.com (it cannot be changed there).
+  TransLiteSetapp:
+    type: application
+    platform: macOS
+    sources:
+      - path: TransLite
+        excludes:
+          - "**/*.entitlements"
+          - "Info.plist"
+          - "Info-Setapp.plist"
+    dependencies:
+      - package: Setapp
+        product: Setapp
+    scheme:
+      testTargets: []
+    # OAuth credentials for the Setapp AI Gateway live in a gitignored
+    # xcconfig (copy Setapp.xcconfig.sample) and reach the app through
+    # Info-Setapp.plist build variables.
+    configFiles:
+      Debug: Setapp.xcconfig
+      Release: Setapp.xcconfig
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.translite.app-setapp
+        INFOPLIST_FILE: TransLite/Info-Setapp.plist
+        CODE_SIGN_ENTITLEMENTS: TransLite/TransLite.entitlements
+        PRODUCT_NAME: TransLite
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        COMBINE_HIDPI_IMAGES: YES
+        SWIFT_ACTIVE_COMPILATION_CONDITIONS: "$(inherited) SETAPP"
         LD_RUNPATH_SEARCH_PATHS:
           - $(inherited)
           - "@executable_path/../Frameworks"

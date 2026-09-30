@@ -107,6 +107,7 @@ final class StatusBarController {
     /// to bring the app to the front first — used on first launch so the
     /// welcome popover doesn't appear unfocused behind Finder.
     func showPopover(activating: Bool = false) {
+        SetappUsage.reportUserInteraction()
         if activating {
             NSApp.activate(ignoringOtherApps: true)
         }

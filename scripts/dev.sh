@@ -10,16 +10,18 @@ EXECUTABLE_PATH="$APP_PATH/Contents/MacOS/TransLite"
 
 SHOULD_CLEAN=false
 SHOULD_OPEN=true
+SCHEME=TransLite
 while [ "$#" -gt 0 ]; do
     case "$1" in
         --clean) SHOULD_CLEAN=true ;;
         --build-only) SHOULD_OPEN=false ;;
+        --setapp) SCHEME=TransLiteSetapp ;;
         -h|--help)
-            echo "Usage: $0 [--clean] [--build-only]"
+            echo "Usage: $0 [--clean] [--build-only] [--setapp]"
             exit 0
             ;;
         *)
-            echo "Usage: $0 [--clean] [--build-only]" >&2
+            echo "Usage: $0 [--clean] [--build-only] [--setapp]" >&2
             exit 1
             ;;
     esac
@@ -30,23 +32,37 @@ if [ "$SHOULD_CLEAN" = true ]; then
     echo "Cleaning the development build..."
     xcodebuild \
         -project "$PROJECT_PATH" \
-        -scheme TransLite \
+        -scheme "$SCHEME" \
         -configuration Debug \
         -derivedDataPath "$DERIVED_DATA" \
         clean
 fi
 
-echo "Building TransLite (Debug)..."
-xcodebuild \
-    -project "$PROJECT_PATH" \
-    -scheme TransLite \
-    -configuration Debug \
-    -destination "platform=macOS" \
-    -derivedDataPath "$DERIVED_DATA" \
-    -quiet \
-    CODE_SIGN_IDENTITY=- \
-    CODE_SIGNING_REQUIRED=NO \
-    build
+echo "Building $SCHEME (Debug)..."
+if [ "$SCHEME" = "TransLiteSetapp" ]; then
+    # The Setapp agent identifies the app by its code signature, so the
+    # Setapp build must be signed with the real Developer ID even for
+    # local testing (ad-hoc signatures fail activation).
+    xcodebuild \
+        -project "$PROJECT_PATH" \
+        -scheme "$SCHEME" \
+        -configuration Debug \
+        -destination "platform=macOS" \
+        -derivedDataPath "$DERIVED_DATA" \
+        -quiet \
+        build
+else
+    xcodebuild \
+        -project "$PROJECT_PATH" \
+        -scheme "$SCHEME" \
+        -configuration Debug \
+        -destination "platform=macOS" \
+        -derivedDataPath "$DERIVED_DATA" \
+        -quiet \
+        CODE_SIGN_IDENTITY=- \
+        CODE_SIGNING_REQUIRED=NO \
+        build
+fi
 
 if [ ! -d "$APP_PATH" ]; then
     echo "Error: build succeeded but the app was not found at $APP_PATH" >&2

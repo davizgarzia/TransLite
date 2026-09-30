@@ -1,5 +1,9 @@
 import SwiftUI
+#if SETAPP
+import Setapp
+#else
 import Sparkle
+#endif
 
 @main
 struct TransLiteApp: App {
@@ -21,14 +25,29 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     var hotkeyManager: HotkeyManager?
     var viewModel: AppViewModel?
 
-    // Sparkle updater controller
+    #if !SETAPP
+    // Sparkle updater controller. The Setapp build must not ship an update
+    // mechanism of its own — Setapp handles updates.
     var updaterController: SPUStandardUpdaterController!
+    #endif
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         AppDelegate.shared = self
 
+        #if SETAPP
+        #if DEBUG
+        // Surface the framework's activation chatter while testing locally
+        SetappManager.logLevel = .debug
+        SetappManager.setLogHandle { message, level in
+            print("[Setapp:\(level)] \(message)")
+        }
+        #endif
+        // Setapp updated the app in the background: offer its release notes
+        SetappManager.shared.showReleaseNotesWindowIfNeeded()
+        #else
         // Initialize Sparkle updater
         updaterController = SPUStandardUpdaterController(startingUpdater: true, updaterDelegate: nil, userDriverDelegate: nil)
+        #endif
 
         // Initialize the view model
         viewModel = AppViewModel()

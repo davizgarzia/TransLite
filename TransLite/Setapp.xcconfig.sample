@@ -1,0 +1,12 @@
+// Setapp AI Gateway OAuth client credentials.
+//
+// 1. Copy this file to Setapp.xcconfig (same directory, gitignored).
+// 2. Create an OAuth client in https://developer.setapp.com
+//    (Apps > OAuth Clients > Add new, one client per app+platform).
+// 3. Paste the values below.
+//
+// The values reach the app through Info-Setapp.plist build variables and are
+// only used by the TransLiteSetapp target.
+
+SETAPP_AI_OAUTH_CLIENT_ID =
+SETAPP_AI_OAUTH_SECRET =

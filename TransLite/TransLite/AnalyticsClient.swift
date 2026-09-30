@@ -124,7 +124,8 @@ private actor AnalyticsDispatcher {
                 properties: properties,
                 context: [
                     "platform": .string("macos"),
-                    "app_version": .string(appVersion)
+                    "app_version": .string(appVersion),
+                    "distribution_channel": .string(DistributionChannel.current.rawValue)
                 ]
             )
         )

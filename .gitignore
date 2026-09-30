@@ -85,3 +85,6 @@ Thumbs.db
 .claude/
 releases/
 marketing/
+
+# Setapp OAuth credentials (copy Setapp.xcconfig.sample and fill in)
+TransLite/Setapp.xcconfig

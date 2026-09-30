@@ -129,7 +129,14 @@ final class AppViewModel: ObservableObject {
     @Published var licenseKeyInput: String = ""
 
     var isLicensed: Bool {
-        licenseKind != nil
+        #if SETAPP
+        // Setapp's framework enforces the entitlement itself (it blocks the
+        // app when the subscription lapses); inside the app a Setapp user is
+        // always licensed.
+        return true
+        #else
+        return licenseKind != nil
+        #endif
     }
     @Published var isActivatingLicense: Bool = false
 
@@ -150,18 +157,31 @@ final class AppViewModel: ObservableObject {
     enum TranslationBackend {
         case byok(provider: APIProvider, apiKey: String)
         case proxy(licenseKey: String?)
+        #if SETAPP
+        // Setapp AI Gateway, paid with the user's Setapp AI credits
+        case setapp
+        #endif
     }
 
     /// Free tier applies when there is no license of any kind and no API
-    /// key configured at all.
+    /// key configured at all. Setapp users are always Pro-equivalent.
     var usesFreeTier: Bool {
-        licenseKind == nil && !hasAPIKey && !hasClaudeAPIKey
+        #if SETAPP
+        return false
+        #else
+        return licenseKind == nil && !hasAPIKey && !hasClaudeAPIKey
+        #endif
     }
 
     /// Whether the BYOK settings (provider picker, API keys) should be
-    /// offered at all. Only the lifetime BYOK license unlocks them.
+    /// offered at all. Only the lifetime BYOK license unlocks them; the
+    /// Setapp build never exposes API keys.
     var canConfigureBYOK: Bool {
-        licenseKind == .byok
+        #if SETAPP
+        return false
+        #else
+        return licenseKind == .byok
+        #endif
     }
 
     // MARK: - Private Properties
@@ -216,7 +236,13 @@ final class AppViewModel: ObservableObject {
         // Check accessibility permission
         self.hasAccessibilityPermission = accessibility.hasAccessibilityPermission
 
+        #if SETAPP
+        // Setapp licensing replaces LemonSqueezy entirely; never read the
+        // direct-build license from the Keychain.
+        self.licenseKind = nil
+        #else
         self.licenseKind = licenseManager.licenseKind
+        #endif
 
         // Set onboarding step - determine WITHOUT accessing Keychain yet
         // to avoid triggering the Keychain permission dialog before UI is ready
@@ -228,17 +254,25 @@ final class AppViewModel: ObservableObject {
             self.hasAPIKey = false // Don't check keychain yet
             self.hasClaudeAPIKey = false
         } else {
+            #if SETAPP
+            // BYOK doesn't exist on Setapp; skip the Keychain reads
+            self.hasAPIKey = false
+            self.hasClaudeAPIKey = false
+            #else
             // No key is a valid state: it means free tier
             self.hasAPIKey = keychain.hasAPIKey
             self.hasClaudeAPIKey = keychain.hasClaudeAPIKey
+            #endif
             self.onboardingStep = onboardingComplete ? .complete : .permissions
         }
 
+        #if !SETAPP
         // Keep free-tier limits in sync with the server (fire and forget)
         Task { [weak self] in
             await ProxyClient.shared.refreshLimits()
             self?.freeLimits = ProxyClient.shared.freeLimits
         }
+        #endif
     }
 
     // MARK: - API Key Management
@@ -390,6 +424,9 @@ final class AppViewModel: ObservableObject {
     /// Resolves how the next request should be fulfilled, setting
     /// statusMessage and returning nil when the action can't proceed.
     private func resolveBackend() -> TranslationBackend? {
+        #if SETAPP
+        return .setapp
+        #else
         refreshLicenseStatus()
 
         // Pro subscribers always go through the proxy with their key
@@ -421,17 +458,28 @@ final class AppViewModel: ObservableObject {
             }
             return .byok(provider: .claude, apiKey: key)
         }
+        #endif
     }
 
     private static func analyticsProvider(for backend: TranslationBackend) -> String {
         switch backend {
         case .byok(let provider, _): return provider.rawValue
         case .proxy(let licenseKey): return licenseKey == nil ? "free_tier" : "pro"
+        #if SETAPP
+        case .setapp: return "setapp_ai"
+        #endif
         }
     }
 
     /// Limits that apply to a proxied backend, nil for BYOK.
     private func proxyLimits(for backend: TranslationBackend) -> ProxyClient.TierLimits? {
+        #if SETAPP
+        if case .setapp = backend {
+            // Client-side cap mirroring the direct Pro tier, so one giant
+            // clipboard can't burn through the user's Setapp AI credits.
+            return ProxyClient.TierLimits(maxChars: 10_000, dailyQuota: nil, allowedTargets: nil)
+        }
+        #endif
         guard case .proxy(let licenseKey) = backend else { return nil }
         return licenseKey == nil ? proxy.freeLimits : proxy.proLimits
     }
@@ -452,6 +500,7 @@ final class AppViewModel: ObservableObject {
 
         guard let backend = resolveBackend() else { return }
         let providerLabel = Self.analyticsProvider(for: backend)
+        SetappUsage.reportUserInteraction()
 
         isTranslating = true
         hud.show(message: "Translating...")
@@ -551,6 +600,14 @@ final class AppViewModel: ObservableObject {
                         tone: translationTone,
                         licenseKey: licenseKey
                     )
+                #if SETAPP
+                case .setapp:
+                    translated = try await SetappAIClient.shared.translate(
+                        text: text,
+                        targetLanguage: targetLanguage.rawValue,
+                        tone: translationTone.promptInstruction
+                    )
+                #endif
                 }
 
                 // Write to clipboard
@@ -610,7 +667,13 @@ final class AppViewModel: ObservableObject {
 
             } catch {
                 statusMessage = error.localizedDescription
-                if error is ProxyError {
+                // Proxied/managed tiers may be used entirely from the hotkey,
+                // so the HUD is the only feedback channel for their errors
+                var flashableError = error is ProxyError
+                #if SETAPP
+                flashableError = flashableError || error is SetappAIClientError
+                #endif
+                if flashableError {
                     await flashHUD(statusMessage)
                 }
                 var failedProperties = baseProperties
@@ -636,6 +699,7 @@ final class AppViewModel: ObservableObject {
 
         guard let backend = resolveBackend() else { return }
         let providerLabel = Self.analyticsProvider(for: backend)
+        SetappUsage.reportUserInteraction()
 
         isTranslating = true
         hud.show(message: "Improving...")
@@ -711,6 +775,10 @@ final class AppViewModel: ObservableObject {
                     )
                 case .proxy(let licenseKey):
                     improved = try await proxy.improve(text: text, licenseKey: licenseKey)
+                #if SETAPP
+                case .setapp:
+                    improved = try await SetappAIClient.shared.improve(text: text)
+                #endif
                 }
 
                 // Write to clipboard
@@ -770,7 +838,13 @@ final class AppViewModel: ObservableObject {
 
             } catch {
                 statusMessage = error.localizedDescription
-                if error is ProxyError {
+                // Proxied/managed tiers may be used entirely from the hotkey,
+                // so the HUD is the only feedback channel for their errors
+                var flashableError = error is ProxyError
+                #if SETAPP
+                flashableError = flashableError || error is SetappAIClientError
+                #endif
+                if flashableError {
                     await flashHUD(statusMessage)
                 }
                 var failedProperties = baseProperties
@@ -796,6 +870,12 @@ final class AppViewModel: ObservableObject {
         if error is URLError {
             return "network_error"
         }
+
+        #if SETAPP
+        if let error = error as? SetappAIClientError {
+            return error.analyticsCategory
+        }
+        #endif
 
         if let error = error as? OpenAIError {
             switch error {
@@ -897,7 +977,9 @@ final class AppViewModel: ObservableObject {
     // MARK: - License
 
     func refreshLicenseStatus() {
+        #if !SETAPP
         licenseKind = licenseManager.licenseKind
+        #endif
     }
 
     func activateLicense() {

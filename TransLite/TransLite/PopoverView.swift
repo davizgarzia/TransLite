@@ -152,10 +152,12 @@ struct PopoverView: View {
         }
     }
 
-    /// Badge label next to the app name. Setapp users are always Pro.
+    /// Badge label next to the app name. Review feedback: Setapp apps are
+    /// fully unlocked by definition, so no badge is shown there — tiers only
+    /// exist in the direct build.
     private var headerBadge: String? {
         #if SETAPP
-        return "PRO"
+        return nil
         #else
         return viewModel.licenseKind.map { $0 == .pro ? "PRO" : "BYOK" }
         #endif
@@ -1405,8 +1407,8 @@ private struct MoreOptionsMenu: View {
             Divider()
 
             #if SETAPP
-            // Setapp handles updates and billing; just say where Pro comes from
-            Text("TransLite Pro · Provided by Setapp")
+            // Setapp handles updates and billing — no tiers to speak of
+            Text("Provided by Setapp")
             #else
             Button("Check for Updates...") {
                 AppDelegate.shared?.updaterController?.checkForUpdates(nil)
